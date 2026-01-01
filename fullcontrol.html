@@ -12,25 +12,94 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 0.9) 15%), #041434;
+            color: #fff;
             min-height: 100vh;
-            color: #333;
+            padding: 0;
+            overflow-y: auto;
         }
 
-        .container {
-            max-width: 1200px;
+        header {
+            width: 100%;
+            max-width: 350px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
 
-        .header {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
+        .logo {
+            width: 132px;
+            height: 25px;
+            margin-left: 0;
+            display: block;
+        }
+
+        .header-spacer {
+            width: 30%;
+        }
+
+        .antenna {
+            width: 15%;
+            padding-left: 25px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .antenna div {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2px;
+        }
+
+        .antenna div:nth-child(1) {
+            width: 4px;
+            height: 4px;
+        }
+
+        .antenna div:nth-child(2) {
+            width: 4px;
+            height: 8px;
+        }
+
+        .antenna div:nth-child(3) {
+            width: 4px;
+            height: 12px;
+        }
+
+        .antenna div:nth-child(4) {
+            width: 4px;
+            height: 16px;
+        }
+
+        .temperature {
+            width: 15%;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .bell {
+            width: 15%;
+            text-align: center;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            cursor: pointer;
+        }
+
+        main {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
         }
 
         .status-bar {
@@ -56,40 +125,49 @@
 
         .tabs {
             display: flex;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 8px;
         }
 
         .tab {
             flex: 1;
-            padding: 15px 20px;
-            background: none;
-            border: none;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            position: relative;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
         }
 
         .tab.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .tab:hover:not(.active) {
-            background: rgba(102, 126, 234, 0.1);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
         }
 
         .tab-content {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 25px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
 
         .tab-content.active {
@@ -101,12 +179,11 @@
         }
 
         .section-title {
-            font-size: 20px;
+            font-size: 14px;
             font-weight: bold;
             margin-bottom: 15px;
-            color: #333;
-            border-bottom: 2px solid #667eea;
-            padding-bottom: 5px;
+            color: #fff;
+            text-align: center;
         }
 
         .lighting-controls {
@@ -381,29 +458,20 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🌊 AquaSmart - Повний контроль акваріумом</h1>
-            <div class="status-bar">
-                <div class="status-card">
-                    <div>Температура</div>
-                    <div class="status-value" id="temp-value">--°C</div>
-                </div>
-                <div class="status-card">
-                    <div>Поточний час</div>
-                    <div class="status-value" id="time-value">--:--:--</div>
-                </div>
-                <div class="status-card">
-                    <div>WiFi статус</div>
-                    <div class="status-value" id="wifi-value">Підключення...</div>
-                </div>
-                <div class="status-card">
-                    <div>Поточний пресет</div>
-                    <div class="status-value" id="current-preset">Немає</div>
-                </div>
-            </div>
+    <header>
+        <img class="logo" src="data:image/png;base64,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">
+        <div class="header-spacer"></div>
+        <div class="antenna">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
         </div>
+        <div class="temperature" id="temp-value">50 °C</div>
+        <div class="bell">🔔</div>
+    </header>
 
+    <main>
         <div class="tabs">
             <button class="tab active" onclick="showTab('lighting')">Освітлення</button>
             <button class="tab" onclick="showTab('schedule')">Розклад</button>
@@ -413,159 +481,167 @@
 
         <!-- Освітлення -->
         <div id="lighting" class="tab-content active">
-            <div class="section">
-                <h2 class="section-title">🎨 Управління освітленням</h2>
-                <div class="lighting-controls">
-                    <div class="channel-control">
-                        <div class="channel-title">Канал 1</div>
-                        <div class="slider-container">
-                            <input type="range" min="0" max="255" value="0" id="channel-0" oninput="updateBrightness(0)">
-                            <div class="brightness-value" id="brightness-0">0</div>
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">🎨 Управління освітленням</h2>
+                    <div class="lighting-controls">
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 1</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-0" oninput="updateBrightness(0)">
+                                <div class="brightness-value" id="brightness-0">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 2</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-1" oninput="updateBrightness(1)">
+                                <div class="brightness-value" id="brightness-1">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 3</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-2" oninput="updateBrightness(2)">
+                                <div class="brightness-value" id="brightness-2">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 4</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-3" oninput="updateBrightness(3)">
+                                <div class="brightness-value" id="brightness-3">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 5</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-4" oninput="updateBrightness(4)">
+                                <div class="brightness-value" id="brightness-4">0</div>
+                            </div>
                         </div>
                     </div>
-                    <div class="channel-control">
-                        <div class="channel-title">Канал 2</div>
-                        <div class="slider-container">
-                            <input type="range" min="0" max="255" value="0" id="channel-1" oninput="updateBrightness(1)">
-                            <div class="brightness-value" id="brightness-1">0</div>
-                        </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="saveCurrentLighting()">💾 Зберегти як пресет</button>
+                        <button class="btn" onclick="loadLightingPreset('default')">📂 Завантажити дефолт</button>
                     </div>
-                    <div class="channel-control">
-                        <div class="channel-title">Канал 3</div>
-                        <div class="slider-container">
-                            <input type="range" min="0" max="255" value="0" id="channel-2" oninput="updateBrightness(2)">
-                            <div class="brightness-value" id="brightness-2">0</div>
-                        </div>
-                    </div>
-                    <div class="channel-control">
-                        <div class="channel-title">Канал 4</div>
-                        <div class="slider-container">
-                            <input type="range" min="0" max="255" value="0" id="channel-3" oninput="updateBrightness(3)">
-                            <div class="brightness-value" id="brightness-3">0</div>
-                        </div>
-                    </div>
-                    <div class="channel-control">
-                        <div class="channel-title">Канал 5</div>
-                        <div class="slider-container">
-                            <input type="range" min="0" max="255" value="0" id="channel-4" oninput="updateBrightness(4)">
-                            <div class="brightness-value" id="brightness-4">0</div>
-                        </div>
-                    </div>
-                </div>
-                <div style="margin-top: 20px;">
-                    <button class="btn btn-success" onclick="saveCurrentLighting()">💾 Зберегти як пресет</button>
-                    <button class="btn" onclick="loadLightingPreset('default')">📂 Завантажити дефолт</button>
                 </div>
             </div>
         </div>
 
         <!-- Розклад -->
         <div id="schedule" class="tab-content">
-            <div class="section">
-                <h2 class="section-title">📅 Річний розклад</h2>
-                <div style="margin-bottom: 20px;">
-                    <select id="year-select" onchange="loadYearSchedule()">
-                        <option value="2024">2024</option>
-                        <option value="2025" selected>2025</option>
-                        <option value="2026">2026</option>
-                    </select>
-                    <button class="btn" onclick="loadYearSchedule()">Оновити</button>
-                    <button class="btn btn-success" onclick="exportSchedule()">📤 Експорт</button>
-                    <button class="btn btn-danger" onclick="showImportModal()">📥 Імпорт</button>
-                </div>
-                <div id="calendar-container">
-                    <!-- Календар буде згенеровано JavaScript -->
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">📅 Річний розклад</h2>
+                    <div style="margin-bottom: 20px;">
+                        <select id="year-select" onchange="loadYearSchedule()">
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <button class="btn" onclick="loadYearSchedule()">Оновити</button>
+                        <button class="btn btn-success" onclick="exportSchedule()">📤 Експорт</button>
+                        <button class="btn btn-danger" onclick="showImportModal()">📥 Імпорт</button>
+                    </div>
+                    <div id="calendar-container">
+                        <!-- Календар буде згенеровано JavaScript -->
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Пресети -->
         <div id="presets" class="tab-content">
-            <div class="section">
-                <h2 class="section-title">🎭 Менеджер пресетів</h2>
-                <div style="margin-bottom: 20px;">
-                    <button class="btn btn-success" onclick="exportPresets()">📤 Експорт всіх пресетів</button>
-                    <button class="btn btn-danger" onclick="showImportPresetsModal()">📥 Імпорт пресетів</button>
-                </div>
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">🎭 Менеджер пресетів</h2>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="exportPresets()">📤 Експорт всіх пресетів</button>
+                        <button class="btn btn-danger" onclick="showImportPresetsModal()">📥 Імпорт пресетів</button>
+                    </div>
 
-                <h3>Освітлення</h3>
-                <div id="lighting-presets" class="preset-list">
-                    <!-- Пресети освітлення -->
-                </div>
+                    <h3>Освітлення</h3>
+                    <div id="lighting-presets" class="preset-list">
+                        <!-- Пресети освітлення -->
+                    </div>
 
-                <h3>Розклади</h3>
-                <div id="schedule-presets" class="preset-list">
-                    <!-- Пресети розкладів -->
+                    <h3>Розклади</h3>
+                    <div id="schedule-presets" class="preset-list">
+                        <!-- Пресети розкладів -->
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Налаштування -->
         <div id="settings" class="tab-content">
-            <div class="section">
-                <h2 class="section-title">⚙️ Системні налаштування</h2>
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">⚙️ Системні налаштування</h2>
 
-                <h3>WiFi</h3>
-                <div class="form-group">
-                    <label>SSID:</label>
-                    <input type="text" id="wifi-ssid">
-                </div>
-                <div class="form-group">
-                    <label>Пароль:</label>
-                    <input type="password" id="wifi-password">
-                </div>
-                <button class="btn" onclick="saveWiFi()">💾 Зберегти WiFi</button>
+                    <h3>WiFi</h3>
+                    <div class="form-group">
+                        <label>SSID:</label>
+                        <input type="text" id="wifi-ssid">
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль:</label>
+                        <input type="password" id="wifi-password">
+                    </div>
+                    <button class="btn" onclick="saveWiFi()">💾 Зберегти WiFi</button>
 
-                <h3>MQTT</h3>
-                <div class="form-group">
-                    <label>Сервер:</label>
-                    <input type="text" id="mqtt-server">
-                </div>
-                <div class="form-group">
-                    <label>Порт:</label>
-                    <input type="number" id="mqtt-port" value="1883">
-                </div>
-                <div class="form-group">
-                    <label>Користувач:</label>
-                    <input type="text" id="mqtt-user">
-                </div>
-                <div class="form-group">
-                    <label>Пароль:</label>
-                    <input type="password" id="mqtt-password">
-                </div>
-                <button class="btn" onclick="saveMQTT()">💾 Зберегти MQTT</button>
+                    <h3>MQTT</h3>
+                    <div class="form-group">
+                        <label>Сервер:</label>
+                        <input type="text" id="mqtt-server">
+                    </div>
+                    <div class="form-group">
+                        <label>Порт:</label>
+                        <input type="number" id="mqtt-port" value="1883">
+                    </div>
+                    <div class="form-group">
+                        <label>Користувач:</label>
+                        <input type="text" id="mqtt-user">
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль:</label>
+                        <input type="password" id="mqtt-password">
+                    </div>
+                    <button class="btn" onclick="saveMQTT()">💾 Зберегти MQTT</button>
 
-                <h3>Час</h3>
-                <div class="time-inputs">
-                    <div class="form-group">
-                        <label>Рік:</label>
-                        <input type="number" id="time-year">
+                    <h3>Час</h3>
+                    <div class="time-inputs">
+                        <div class="form-group">
+                            <label>Рік:</label>
+                            <input type="number" id="time-year">
+                        </div>
+                        <div class="form-group">
+                            <label>Місяць:</label>
+                            <input type="number" id="time-month" min="1" max="12">
+                        </div>
+                        <div class="form-group">
+                            <label>День:</label>
+                            <input type="number" id="time-day" min="1" max="31">
+                        </div>
+                        <div class="form-group">
+                            <label>Година:</label>
+                            <input type="number" id="time-hour" min="0" max="23">
+                        </div>
+                        <div class="form-group">
+                            <label>Хвилина:</label>
+                            <input type="number" id="time-minute" min="0" max="59">
+                        </div>
+                        <div class="form-group">
+                            <label>Секунда:</label>
+                            <input type="number" id="time-second" min="0" max="59">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Місяць:</label>
-                        <input type="number" id="time-month" min="1" max="12">
-                    </div>
-                    <div class="form-group">
-                        <label>День:</label>
-                        <input type="number" id="time-day" min="1" max="31">
-                    </div>
-                    <div class="form-group">
-                        <label>Година:</label>
-                        <input type="number" id="time-hour" min="0" max="23">
-                    </div>
-                    <div class="form-group">
-                        <label>Хвилина:</label>
-                        <input type="number" id="time-minute" min="0" max="59">
-                    </div>
-                    <div class="form-group">
-                        <label>Секунда:</label>
-                        <input type="number" id="time-second" min="0" max="59">
-                    </div>
+                    <button class="btn" onclick="setTime()">⏰ Встановити час</button>
                 </div>
-                <button class="btn" onclick="setTime()">⏰ Встановити час</button>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Модальні вікна -->
     <div id="day-modal" class="modal">
@@ -635,9 +711,6 @@
             try {
                 // Тут можна додати отримання температури через API
                 document.getElementById('temp-value').textContent = '24.5°C';
-                document.getElementById('time-value').textContent = new Date().toLocaleTimeString('uk-UA');
-                document.getElementById('wifi-value').textContent = 'Підключено';
-                document.getElementById('current-preset').textContent = 'daylight';
             } catch (error) {
                 console.error('Помилка завантаження статусу:', error);
             }
