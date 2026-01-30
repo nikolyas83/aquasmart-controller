@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дашборд управления светодиодами</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 0.9) 15%), #041434;
+            color: #fff;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        header {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo {
+            width: 132px;
+            height: 25px;
+			margin-left: 0;
+			display: block;
+        }
+
+        .header-spacer {
+            width: 30%;
+        }
+
+        .antenna {
+            width: 15%;
+			padding-left: 25px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .antenna div {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2px;
+        }
+
+        .antenna div:nth-child(1) {
+            width: 4px;
+            height: 4px;
+        }
+
+        .antenna div:nth-child(2) {
+            width: 4px;
+            height: 8px;
+        }
+
+        .antenna div:nth-child(3) {
+            width: 4px;
+            height: 12px;
+        }
+
+        .antenna div:nth-child(4) {
+            width: 4px;
+            height: 16px;
+        }
+
+        .temperature {
+            width: 15%;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .bell {
+            width: 15%;
+            text-align: center;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            cursor: pointer;
+        }
+
+        main {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        footer {
+          	display:none;
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px 15px;
+            text-align: center;
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .dashboard {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .spectrum-chart {
+            width: 100%;
+            height: 240px;
+            position: relative;
+            background: rgba(217, 217, 217, 0.1);
+            border-radius: 10px;
+            padding: 1px;
+        }
+
+        .mini-spectrum-chart {
+            width: 60px;
+            height: 40px;
+            background: rgba(217, 217, 217, 0.1);
+            border-radius: 5px;
+            display: block;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .chart-labels {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            top: 12px;
+            left: 12px;
+        }
+
+        .y-labels {
+            position: absolute;
+            left: -10px;
+            top: 5px;
+            height: calc(100% - 35px);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.9);
+            text-align: right;
+        }
+
+        .x-labels {
+            position: absolute;
+            bottom: 14px;
+            left: 20px;
+            right: 40px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .perceived-color {
+            width: 100%;
+            height: 10px;
+            border-radius: 2px;
+            margin-top: 0px;
+            background-color: rgb(128, 128, 128);
+            transition: background-color 0.2s;
+        }
+
+        .sliders {
+            width: 100%;
+			margin-top: 30px;
+            display: grid;
+            grid-template-columns: repeat(6, 50px);
+            gap: 2px;
+            padding: 10px 0;
+            min-height: 190px;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 180px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 170px;
+            height: 4px;
+            transform: rotate(-90deg);
+            transform-origin: center;
+            border-radius: 2px;
+            outline: none;
+            position: relative;
+            top: 85px;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 9px;
+            color: #fff;
+            text-align: center;
+            font-weight: 500;
+        }
+
+        #master-slider {
+            background: linear-gradient(180deg, #ffffff, #373737);
+        }
+        #master-slider::-webkit-slider-thumb {
+            background: #fff;
+        }
+        #master-slider::-moz-range-thumb {
+            background: #fff;
+        }
+
+        #warm-white-slider {
+            background: #f3ffaf;
+        }
+        #warm-white-slider::-webkit-slider-thumb {
+            background: #f3ffaf;
+        }
+        #warm-white-slider::-moz-range-thumb {
+            background: #f3ffaf;
+        }
+
+        #cold-white-slider {
+            background: #e6efff;
+        }
+        #cold-white-slider::-webkit-slider-thumb {
+            background: #e6efff;
+        }
+        #cold-white-slider::-moz-range-thumb {
+            background: #e6efff;
+        }
+
+        #green-slider {
+            background: #00cc00;
+        }
+        #green-slider::-webkit-slider-thumb {
+            background: #00cc00;
+        }
+        #green-slider::-moz-range-thumb {
+            background: #00cc00;
+        }
+
+        #red-slider {
+            background: #ff0000;
+        }
+        #red-slider::-webkit-slider-thumb {
+            background: #ff0000;
+        }
+        #red-slider::-moz-range-thumb {
+            background: #ff0000;
+        }
+
+        #blue-slider {
+            background: #0000ff;
+        }
+        #blue-slider::-webkit-slider-thumb {
+            background: #0000ff;
+        }
+        #blue-slider::-moz-range-thumb {
+            background: #0000ff;
+        }
+
+        .preset-name {
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            min-height: 20px;
+        }
+
+        .buttons {
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            padding-top: 10px;
+        }
+
+        button {
+            padding: 8px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(217, 217, 217, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            width: 80%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .modal-content input,
+        .modal-content select {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            color: #fff;
+            font-size: 12px;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .library-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .close-library {
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .close-library:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .library-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .library-tab {
+            padding: 6px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .library-tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .preset-group {
+            margin-bottom: 15px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .preset-group h3 {
+            grid-column: 1 / -1;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .preset {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .preset:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .preset-name-text {
+            flex: 1;
+            font-size: 10px;
+            color: #fff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .preset-star {
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .preset-star.favorite {
+            color: #ffd700;
+        }
+
+        .preset-star:not(.favorite) {
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+</head>
+<body>
+    <header>
+        <img class="logo" src="data:image/png;base64,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">
+        <div class="header-spacer"></div>
+        <div class="antenna">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="temperature">50 °C</div>
+        <div class="bell">🔔</div>
+    </header>
+
+    <main>
+        <div class="tabs">
+            <div class="tab active" data-tab="spectrum">SPECTRUM</div>
+            <div class="tab" data-tab="schedule">SCHEDULE</div>
+            <div class="tab" data-tab="device">DEVICE</div>
+        </div>
+
+        <div class="tab-content active" id="spectrum">
+            <div class="dashboard" id="spectrum-main">
+                <div class="spectrum-chart">
+                    <canvas id="spectrumCanvas"></canvas>
+                    <div class="chart-labels">
+                        <div class="y-labels">
+                            <span>100%</span>
+                            <span>80%</span>
+                            <span>60%</span>
+                            <span>40%</span>
+                            <span>20%</span>
+                            <span>0%</span>
+                        </div>
+                        <div class="x-labels">
+                            <span>400</span>
+                            <span>500</span>
+                            <span>560</span>
+                            <span>700</span>
+                            <span>770</span>
+                        </div>
+                    </div>
+                    <div class="perceived-color"></div>
+                </div>
+
+                <div class="sliders">
+                    <div class="slider-container">
+                        <input type="range" id="master-slider" min="0" max="100" value="50">
+                        <div class="slider-value" id="master-value">50%</div>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="blue-slider" min="0" max="100" value="0">
+                        <div class="slider-value" id="blue-value">0%</div>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="cold-white-slider" min="0" max="100" value="0">
+                        <div class="slider-value" id="cold-white-value">0%</div>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="green-slider" min="0" max="100" value="0">
+                        <div class="slider-value" id="green-value">0%</div>
+                    </div>
+					<div class="slider-container">
+                        <input type="range" id="warm-white-slider" min="0" max="100" value="0">
+                        <div class="slider-value" id="warm-white-value">0%</div>
+                    </div>
+                    <div class="slider-container">
+                        <input type="range" id="red-slider" min="0" max="100" value="0">
+                        <div class="slider-value" id="red-value">0%</div>
+                    </div>
+                    
+                </div>
+
+                <div class="preset-name" id="preset-name"></div>
+
+                <div class="buttons">
+                    <button id="apply-btn">Apply</button>
+                    <button id="save-as-btn">Save As</button>
+                    <button id="library-btn">Library</button>
+                </div>
+            </div>
+
+            <div class="dashboard" id="library-view" style="display: none;">
+                <div class="library-header">
+                    <span>Spectrum Library</span>
+                    <div class="close-library" id="close-library-btn">✖</div>
+                </div>
+                <div class="library-tabs">
+                    <div class="library-tab active" data-filter="all">All</div>
+                    <div class="library-tab" data-filter="favorites">Favorites</div>
+                </div>
+                <div id="preset-groups"></div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="schedule">
+            <div class="dashboard">
+                <div style="text-align: center; padding: 20px; font-size: 14px;">
+                    Schedule Tab (Placeholder)
+					<input type="text" id="schedule-date" class="flatpickr" />
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="device">
+            <div class="dashboard">
+                <div style="text-align: center; padding: 20px; font-size: 14px;">
+                    Device Tab (Placeholder)
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="modal" id="save-as-modal">
+        <div class="modal-content">
+            <input type="text" id="preset-name-input" placeholder="Preset Name">
+            <select id="preset-group-select">
+                <option value="Dawn">Dawn</option>
+                <option value="Midday">Midday</option>
+                <option value="Sunset">Sunset</option>
+                <option value="Night">Night</option>
+                <option value="Exotic">Exotic</option>
+            </select>
+            <div class="modal-buttons">
+                <button id="save-preset-btn">Save</button>
+                <button id="cancel-preset-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        16 April 2025, 14:30
+    </footer>
+
+    <script>
+        const canvas = document.getElementById('spectrumCanvas');
+        const ctx = canvas.getContext('2d');
+        const perceivedColor = document.querySelector('.perceived-color');
+        const sliders = {
+            master: document.getElementById('master-slider'),
+            warmWhite: document.getElementById('warm-white-slider'),
+            coldWhite: document.getElementById('cold-white-slider'),
+            green: document.getElementById('green-slider'),
+            red: document.getElementById('red-slider'),
+            blue: document.getElementById('blue-slider')
+        };
+        const values = {
+            master: document.getElementById('master-value'),
+            warmWhite: document.getElementById('warm-white-value'),
+            coldWhite: document.getElementById('cold-white-value'),
+            green: document.getElementById('green-value'),
+            red: document.getElementById('red-value'),
+            blue: document.getElementById('blue-value')
+        };
+
+        const presetNameDisplay = document.getElementById('preset-name');
+		presetNameDisplay.textContent = 'none';
+        const spectrumMain = document.getElementById('spectrum-main');
+        const libraryView = document.getElementById('library-view');
+        const saveAsModal = document.getElementById('save-as-modal');
+        const presetNameInput = document.getElementById('preset-name-input');
+        const presetGroupSelect = document.getElementById('preset-group-select');
+        const savePresetBtn = document.getElementById('save-preset-btn');
+        const cancelPresetBtn = document.getElementById('cancel-preset-btn');
+        const presetGroupsContainer = document.getElementById('preset-groups');
+        const closeLibraryBtn = document.getElementById('close-library-btn');
+
+        let currentPreset = null;
+        let libraryFilter = 'all';
+
+        // Логіка вкладок
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab).classList.add('active');
+
+                if (tab.dataset.tab === 'spectrum') {
+                    if (spectrumMain.style.display !== 'none') {
+                        console.log('Switching to SPECTRUM, resizing canvas');
+                        resizeCanvas();
+                    }
+                }
+            });
+        });
+
+        // Установка розмірів канваса
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const parent = canvas.parentElement;
+            canvas.width = parent.offsetWidth * dpr;
+            canvas.height = parent.offsetHeight * dpr;
+            canvas.style.width = `${parent.offsetWidth}px`;
+            canvas.style.height = `${parent.offsetHeight}px`;
+            ctx.scale(dpr, dpr);
+            console.log(`Resizing main canvas: ${canvas.width}x${canvas.height} (style: ${canvas.style.width}x${canvas.style.height})`);
+            drawChart();
+        }
+
+        window.addEventListener('resize', () => {
+            if (document.getElementById('spectrum').classList.contains('active') && spectrumMain.style.display !== 'none') {
+                console.log('Window resized, updating main canvas');
+                resizeCanvas();
+            }
+        });
+
+        // Модель спектральних даних для графіку
+        const wavelengths = Array.from({ length: 301 }, (_, i) => 380 + i * (390 / 300));
+        const ledSpectra = {
+            red: wavelengths.map(w => Math.exp(-((w - 640) ** 2) / (2 * 12 ** 2))),
+            green: wavelengths.map(w => Math.exp(-((w - 525) ** 2) / (2 * 15 ** 2))),
+            blue: wavelengths.map(w => Math.exp(-((w - 440) ** 2) / (2 * 12 ** 2))),
+            warmWhite: wavelengths.map(w => {
+                const bluePeak = 0.15 * Math.exp(-((w - 470) ** 2) / (2 * 10 ** 2));
+                const phosphor = 0.85 * Math.exp(-((w - 590) ** 2) / (2 * 60 ** 2));
+                return bluePeak + phosphor;
+            }),
+            coldWhite: wavelengths.map(w => {
+                const bluePeak = 0.35 * Math.exp(-((w - 470) ** 2) / (2 * 10 ** 2));
+                const phosphor = 0.65 * Math.exp(-((w - 540) ** 2) / (2 * 50 ** 2));
+                return bluePeak + phosphor;
+            })
+        };
+
+        // Оновлення значень слайдерів
+        Object.keys(sliders).forEach(key => {
+            sliders[key].addEventListener('input', () => {
+                const value = sliders[key].value;
+                values[key].textContent = `${value}%`;
+                currentPreset = null;
+                presetNameDisplay.textContent = '';
+                console.log(`Slider ${key} changed to ${value}, updating chart`);
+                drawChart();
+            });
+        });
+
+        // Малювання графіку
+        function drawChart(canvasElement = canvas, ctxElement = ctx, slidersValues = sliders) {
+            const ctxLocal = ctxElement;
+            const isMini = canvasElement.classList.contains('mini-spectrum-chart');
+            const dpr = isMini ? 1 : window.devicePixelRatio || 1;
+
+            // Налаштування розмірів
+            const canvasWidth = isMini ? 60 : canvasElement.parentElement.offsetWidth;
+            const canvasHeight = isMini ? 40 : canvasElement.parentElement.offsetHeight;
+            if (!isMini) {
+                canvasElement.width = canvasWidth * dpr;
+                canvasElement.height = canvasHeight * dpr;
+                canvasElement.style.width = `${canvasWidth}px`;
+                canvasElement.style.height = `${canvasHeight}px`;
+                ctxLocal.scale(dpr, dpr);
+            }
+
+            ctxLocal.clearRect(0, 0, canvasWidth, canvasHeight);
+
+            const width = canvasWidth - (isMini ? 8 : 44);
+            const height = canvasHeight - (isMini ? 8 : 44);
+            const offset = isMini ? 4 : 22;
+
+            const masterFactor = slidersValues.master.value / 100;
+            const intensities = {
+                red: (slidersValues.red.value / 100) * masterFactor,
+                green: (slidersValues.green.value / 100) * masterFactor,
+                blue: (slidersValues.blue.value / 100) * masterFactor,
+                warmWhite: (slidersValues.warmWhite.value / 100) * masterFactor,
+                coldWhite: (slidersValues.coldWhite.value / 100) * masterFactor
+            };
+
+            const combinedSpectrum = wavelengths.map((_, i) => {
+                return (
+                    intensities.red * ledSpectra.red[i] +
+                    intensities.green * ledSpectra.green[i] +
+                    intensities.blue * ledSpectra.blue[i] +
+                    intensities.warmWhite * ledSpectra.warmWhite[i] +
+                    intensities.coldWhite * ledSpectra.coldWhite[i]
+                );
+            });
+            const maxSpectrum = Math.max(...combinedSpectrum, 1);
+
+            console.log(`Drawing ${isMini ? 'mini' : 'main'} chart: maxSpectrum=${maxSpectrum}, intensities=`, intensities);
+
+            // Сітка тільки для головного графіку
+            if (!isMini) {
+                ctxLocal.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctxLocal.lineWidth = 1;
+                for (let i = 0; i <= 5; i++) {
+                    const y = offset + (height / 5) * i;
+                    ctxLocal.beginPath();
+                    ctxLocal.moveTo(offset, y);
+                    ctxLocal.lineTo(offset + width, y);
+                    ctxLocal.stroke();
+                }
+                const xPositions = [380, 458, 536, 614, 692, 770];
+                xPositions.forEach(w => {
+                    const x = offset + ((w - 380) / 390) * width;
+                    ctxLocal.beginPath();
+                    ctxLocal.moveTo(x, offset);
+                    ctxLocal.lineTo(x, offset + height);
+                    ctxLocal.stroke();
+                });
+            }
+
+            // Заповнена область
+            ctxLocal.beginPath();
+            ctxLocal.moveTo(offset, offset + height);
+            combinedSpectrum.forEach((intensity, i) => {
+                const x = offset + (i / (wavelengths.length - 1)) * width;
+                const y = offset + height - ((intensity / maxSpectrum) * height);
+                ctxLocal.lineTo(x, y);
+            });
+            ctxLocal.lineTo(offset + width, offset + height);
+            ctxLocal.closePath();
+
+            const gradient = ctxLocal.createLinearGradient(offset, 0, offset + width, 0);
+            gradient.addColorStop(0, '#4b0082');
+            gradient.addColorStop((450 - 380) / 390, '#0000ff');
+            gradient.addColorStop((470 - 380) / 390, '#00b7eb');
+            gradient.addColorStop((525 - 380) / 390, '#00ff00');
+            gradient.addColorStop((550 - 380) / 390, '#00ff00');
+            gradient.addColorStop((590 - 380) / 390, '#ffff00');
+            gradient.addColorStop((630 - 380) / 390, '#ff0000');
+            gradient.addColorStop(1, '#800000');
+            ctxLocal.fillStyle = gradient;
+            ctxLocal.globalAlpha = 0.9;
+            ctxLocal.fill();
+            ctxLocal.globalAlpha = 1;
+
+            // Контур
+            ctxLocal.beginPath();
+            combinedSpectrum.forEach((intensity, i) => {
+                const x = offset + (i / (wavelengths.length - 1)) * width;
+                const y = offset + height - ((intensity / maxSpectrum) * height);
+                if (i === 0) ctxLocal.moveTo(x, y);
+                else ctxLocal.lineTo(x, y);
+            });
+            ctxLocal.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctxLocal.lineWidth = 1;
+            ctxLocal.stroke();
+
+            // Дебаг: чорний прямокутник, якщо спектр нульовий
+            if (maxSpectrum === 1 && combinedSpectrum.every(v => v === 0)) {
+                ctxLocal.fillStyle = 'black';
+                ctxLocal.fillRect(offset, offset, width, height);
+                console.log(`Spectrum is zero for ${isMini ? 'mini' : 'main'} chart, drawing red rectangle`);
+            }
+
+            // Perceived color тільки для головного графіку
+            if (!isMini && canvasElement === canvas) {
+                let r = Math.round((slidersValues.red.value / 100) * masterFactor * 255);
+                let g = Math.round((slidersValues.green.value / 100) * masterFactor * 255);
+                let b = Math.round((slidersValues.blue.value / 100) * masterFactor * 255);
+
+                const warmWhiteFactor = intensities.warmWhite;
+                const coldWhiteFactor = intensities.coldWhite;
+                const warmWhiteColor = [255, 228, 181];
+                const coldWhiteColor = [212, 230, 255];
+
+                r = Math.min(255, r + Math.round(warmWhiteFactor * warmWhiteColor[0] + coldWhiteFactor * coldWhiteColor[0]));
+                g = Math.min(255, g + Math.round(warmWhiteFactor * warmWhiteColor[1] + coldWhiteFactor * coldWhiteColor[1]));
+                b = Math.min(255, b + Math.round(warmWhiteFactor * warmWhiteColor[2] + coldWhiteFactor * coldWhiteColor[2]));
+
+                perceivedColor.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Логіка пресетів
+        const presetGroups = {
+            Dawn: [
+                { name: 'Morning Glow', sliders: { master: 80, warmWhite: 60, coldWhite: 20, red: 10, green: 0, blue: 0 }, favorite: true },
+                { name: 'Soft Dawn', sliders: { master: 60, warmWhite: 50, coldWhite: 10, red: 5, green: 0, blue: 0 }, favorite: false }
+            ],
+            Midday: [
+                { name: 'Bright Noon', sliders: { master: 100, warmWhite: 20, coldWhite: 80, red: 0, green: 0, blue: 0 }, favorite: false },
+                { name: 'Clear Day', sliders: { master: 90, warmWhite: 30, coldWhite: 70, red: 0, green: 0, blue: 0 }, favorite: true }
+            ],
+            Sunset: [
+                { name: 'Evening Hue', sliders: { master: 70, warmWhite: 80, coldWhite: 0, red: 30, green: 0, blue: 0 }, favorite: true },
+                { name: 'Warm Sunset', sliders: { master: 65, warmWhite: 90, coldWhite: 0, red: 20, green: 0, blue: 0 }, favorite: false }
+            ],
+            Night: [
+                { name: 'Moonlight', sliders: { master: 50, warmWhite: 10, coldWhite: 50, red: 0, green: 0, blue: 20 }, favorite: false },
+                { name: 'Starry Night', sliders: { master: 40, warmWhite: 5, coldWhite: 40, red: 0, green: 0, blue: 30 }, favorite: true }
+            ],
+            Exotic: [
+                { name: 'Neon Dream', sliders: { master: 90, warmWhite: 0, coldWhite: 0, red: 50, green: 50, blue: 50 }, favorite: true },
+                { name: 'Vivid Pulse', sliders: { master: 85, warmWhite: 0, coldWhite: 0, red: 60, green: 40, blue: 60 }, favorite: false }
+            ]
+        };
+
+        function savePresets() {
+            localStorage.setItem('presetGroups', JSON.stringify(presetGroups));
+        }
+
+        function loadPresets() {
+            const saved = localStorage.getItem('presetGroups');
+            if (saved) {
+                Object.assign(presetGroups, JSON.parse(saved));
+            }
+        }
+
+        function renderLibrary() {
+            presetGroupsContainer.innerHTML = '';
+            Object.keys(presetGroups).forEach(group => {
+                const presets = presetGroups[group];
+                if (libraryFilter === 'favorites' && !presets.some(p => p.favorite)) return;
+                const groupElement = document.createElement('div');
+                groupElement.className = 'preset-group';
+                groupElement.innerHTML = `<h3>${group}</h3>`;
+                presets.forEach((preset, index) => {
+                    if (libraryFilter === 'favorites' && !preset.favorite) return;
+                    const presetElement = document.createElement('div');
+                    presetElement.className = 'preset';
+                    presetElement.innerHTML = `
+                        <canvas class="mini-spectrum-chart" width="60" height="40"></canvas>
+                        <div class="preset-name-text">${preset.name}</div>
+                        <div class="preset-star ${preset.favorite ? 'favorite' : ''}" data-group="${group}" data-index="${index}">⭐</div>
+                    `;
+                    groupElement.appendChild(presetElement);
+
+                    try {
+                        const canvas = presetElement.querySelector('canvas');
+                        const ctxMini = canvas.getContext('2d');
+                        canvas.width = 60;
+                        canvas.height = 40;
+                        canvas.style.width = '60px';
+                        canvas.style.height = '40px';
+                        console.log(`Rendering chart for ${preset.name}: ${canvas.width}x${canvas.height}`);
+                        drawChart(canvas, ctxMini, {
+                            master: { value: preset.sliders.master },
+                            warmWhite: { value: preset.sliders.warmWhite },
+                            coldWhite: { value: preset.sliders.coldWhite },
+                            red: { value: preset.sliders.red },
+                            green: { value: preset.sliders.green },
+                            blue: { value: preset.sliders.blue }
+                        });
+                    } catch (e) {
+                        console.error(`Error rendering chart for ${preset.name}:`, e);
+                    }
+                });
+                presetGroupsContainer.appendChild(groupElement);
+            });
+
+            document.querySelectorAll('.preset').forEach(presetElement => {
+                presetElement.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('preset-star')) {
+                        const group = e.target.dataset.group;
+                        const index = e.target.dataset.index;
+                        presetGroups[group][index].favorite = !presetGroups[group][index].favorite;
+                        e.target.classList.toggle('favorite');
+                        savePresets();
+                        renderLibrary();
+                    } else {
+                        const group = presetElement.querySelector('.preset-star').dataset.group;
+                        const index = presetElement.querySelector('.preset-star').dataset.index;
+                        const preset = presetGroups[group][index];
+                        console.log(`Applying preset ${preset.name}, switching to SPECTRUM`);
+                        applyPreset(preset);
+                        spectrumMain.style.display = 'block';
+                        libraryView.style.display = 'none';
+                        resizeCanvas();
+                    }
+                });
+            });
+        }
+
+        function applyPreset(preset) {
+            sliders.master.value = preset.sliders.master;
+            sliders.warmWhite.value = preset.sliders.warmWhite;
+            sliders.coldWhite.value = preset.sliders.coldWhite;
+            sliders.red.value = preset.sliders.red;
+            sliders.green.value = preset.sliders.green;
+            sliders.blue.value = preset.sliders.blue;
+
+            values.master.textContent = `${preset.sliders.master}%`;
+            values.warmWhite.textContent = `${preset.sliders.warmWhite}%`;
+            values.coldWhite.textContent = `${preset.sliders.coldWhite}%`;
+            values.red.textContent = `${preset.sliders.red}%`;
+            values.green.textContent = `${preset.sliders.green}%`;
+            values.blue.textContent = `${preset.sliders.blue}%`;
+
+            currentPreset = preset;
+            presetNameDisplay.textContent = preset.name;
+            console.log(`Applied preset ${preset.name}, sliders:`, preset.sliders);
+            drawChart();
+        }
+
+        // Ініціалізація Library
+        loadPresets();
+        renderLibrary();
+
+        // Обробники кнопок
+        document.getElementById('save-as-btn').addEventListener('click', () => {
+            presetNameInput.value = '';
+            saveAsModal.style.display = 'flex';
+        });
+
+        document.getElementById('library-btn').addEventListener('click', () => {
+            spectrumMain.style.display = 'none';
+            libraryView.style.display = 'block';
+            console.log('Opening Library');
+            renderLibrary();
+        });
+
+        closeLibraryBtn.addEventListener('click', () => {
+            spectrumMain.style.display = 'block';
+            libraryView.style.display = 'none';
+            console.log('Closing Library, resizing main canvas');
+            resizeCanvas();
+        });
+
+        savePresetBtn.addEventListener('click', () => {
+            const name = presetNameInput.value.trim();
+            const group = presetGroupSelect.value;
+            if (name) {
+                const preset = {
+                    name,
+                    sliders: {
+                        master: sliders.master.value,
+                        warmWhite: sliders.warmWhite.value,
+                        coldWhite: sliders.coldWhite.value,
+                        red: sliders.red.value,
+                        green: sliders.green.value,
+                        blue: sliders.blue.value
+                    },
+                    favorite: false
+                };
+                presetGroups[group].push(preset);
+                savePresets();
+                saveAsModal.style.display = 'none';
+                console.log(`Saved preset ${name} to ${group}`);
+                renderLibrary();
+            }
+        });
+
+        cancelPresetBtn.addEventListener('click', () => {
+            saveAsModal.style.display = 'none';
+        });
+
+        document.querySelectorAll('.library-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.library-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                libraryFilter = tab.dataset.filter;
+                console.log(`Switching library filter to ${libraryFilter}`);
+                renderLibrary();
+            });
+        });
+
+        // Початкова отрисовка
+        setTimeout(() => {
+			resizeCanvas();
+		}, 0);
+    </script>
+</body>
+</html>

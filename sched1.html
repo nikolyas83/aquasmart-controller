@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Tab for Redmi 4</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 0.9) 15%), #041434;
+            color: #fff;
+            min-height: 600px;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        header {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo {
+            width: 132px;
+            height: 25px;
+            margin-left: 0;
+            display: block;
+            background: #fff; /* Заглушка для логотипу */
+        }
+
+        .header-spacer {
+            width: 30%;
+        }
+
+        .antenna {
+            width: 15%;
+            padding-left: 25px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .antenna div {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2px;
+        }
+
+        .antenna div:nth-child(1) {
+            width: 4px;
+            height: 4px;
+        }
+
+        .antenna div:nth-child(2) {
+            width: 4px;
+            height: 8px;
+        }
+
+        .antenna div:nth-child(3) {
+            width: 4px;
+            height: 12px;
+        }
+
+        .antenna div:nth-child(4) {
+            width: 4px;
+            height: 16px;
+        }
+
+        .temperature {
+            width: 15%;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .bell {
+            width: 15%;
+            text-align: center;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            cursor: pointer;
+        }
+
+        main {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: #007bff;
+        }
+
+        .tab-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 10px;
+            flex: 1;
+        }
+
+        .schedule-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 10px;
+        }
+
+        .calendar-container {
+            width: 100%;
+        }
+
+        .calendar-container label {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #fff;
+        }
+
+        .calendar {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .calendar-header button {
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .calendar-header button:hover, .calendar-header button:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 3px;
+            text-align: center;
+        }
+
+        .calendar-grid div {
+            padding: 5px;
+            font-size: 10px;
+        }
+
+        .calendar-grid .day-header {
+            color: #aaa;
+            font-weight: 600;
+        }
+
+        .calendar-grid .day {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .calendar-grid .day:hover, .calendar-grid .day:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .calendar-grid .day.selected {
+            background: #007bff;
+        }
+
+        .calendar-grid .day.disabled {
+            color: #666;
+            background: transparent;
+            cursor: default;
+        }
+
+        .mode-buttons {
+            display: flex;
+            flex-direction: row;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .mode-button {
+            flex: 1;
+            padding: 5px;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: #fff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .mode-button:hover, .mode-button:active {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mode-button.active {
+            background: #007bff;
+            border-color: #007bff;
+        }
+
+        .chart-container {
+            width: 100%;
+            padding: 10px 0;
+        }
+
+        #schedule-chart {
+            width: 100%;
+            height: 150px;
+        }
+
+        @media (max-width: 360px) {
+            header, main {
+                max-width: 100%;
+                padding: 5px;
+            }
+
+            .calendar-grid div {
+                padding: 3px;
+                font-size: 9px;
+            }
+
+            .mode-button {
+                padding: 4px;
+                font-size: 9px;
+            }
+
+            #schedule-chart {
+                height: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"></div>
+        <div class="header-spacer"></div>
+        <div class="antenna">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="temperature">23°C</div>
+        <div class="bell">🔔</div>
+    </header>
+    <main>
+        <div class="tabs">
+            <div class="tab">Home</div>
+            <div class="tab active">Schedule</div>
+            <div class="tab">Settings</div>
+        </div>
+        <div class="tab-content" id="schedule">
+            <div class="dashboard">
+                <div class="schedule-container">
+                    <!-- Календар -->
+                    <div class="calendar-container">
+                        <label>Select Date:</label>
+                        <div class="calendar" id="calendar">
+                            <div class="calendar-header">
+                                <button id="prev-month"><</button>
+                                <span id="month-year"></span>
+                                <button id="next-month">></button>
+                            </div>
+                            <div class="calendar-grid" id="calendar-grid"></div>
+                        </div>
+                    </div>
+                    <!-- Кнопки -->
+                    <div class="mode-buttons">
+                        <button class="mode-button active" data-mode="day">Day</button>
+                        <button class="mode-button" data-mode="week">Week</button>
+                        <button class="mode-button" data-mode="month">Month</button>
+                    </div>
+                </div>
+                <!-- Графік -->
+                <div class="chart-container">
+                    <canvas id="schedule-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Тестові дані (заміни реальними)
+        const scheduleData = {
+            day: Array.from({ length: 24 }, (_, i) => ({
+                hour: i,
+                intensity: Math.sin((i / 24) * Math.PI * 2) * 50 + 50
+            })),
+            week: Array.from({ length: 7 }, (_, i) => ({
+                day: i,
+                intensity: Math.random() * 100
+            })),
+            month: Array.from({ length: 30 }, (_, i) => ({
+                day: i,
+                intensity: Math.random() * 100
+            }))
+        };
+
+        // Отримуємо елементи
+        const scheduleChartCanvas = document.getElementById('schedule-chart');
+        const ctx = scheduleChartCanvas.getContext('2d');
+        const modeButtons = document.querySelectorAll('.mode-button');
+        const calendarGrid = document.getElementById('calendar-grid');
+        const monthYear = document.getElementById('month-year');
+        const prevMonth = document.getElementById('prev-month');
+        const nextMonth = document.getElementById('next-month');
+
+        // Поточна дата
+        let currentDate = new Date();
+        let selectedDate = new Date();
+
+        // Генерація календаря
+        function renderCalendar() {
+            calendarGrid.innerHTML = '';
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // Заголовок
+            monthYear.textContent = `${new Date(year, month).toLocaleString('en', { month: 'long' })} ${year}`;
+
+            // Дні тижня
+            const daysOfWeek = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+            daysOfWeek.forEach(day => {
+                const div = document.createElement('div');
+                div.className = 'day-header';
+                div.textContent = day;
+                calendarGrid.appendChild(div);
+            });
+
+            // Перший день місяця
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // Порожні клітинки
+            for (let i = 0; i < firstDay; i++) {
+                const div = document.createElement('div');
+                div.className = 'day disabled';
+                calendarGrid.appendChild(div);
+            }
+
+            // Дні місяця
+            for (let day = 1; day <= daysInMonth; day++) {
+                const div = document.createElement('div');
+                div.className = 'day';
+                div.textContent = day;
+                const isSelected = selectedDate.getFullYear() === year &&
+                                 selectedDate.getMonth() === month &&
+                                 selectedDate.getDate() === day;
+                if (isSelected) div.classList.add('selected');
+                div.addEventListener('click', () => handleDayClick(year, month, day));
+                div.addEventListener('touchstart', () => handleDayClick(year, month, day));
+                calendarGrid.appendChild(div);
+            }
+        }
+
+        // Обробка вибору дня
+        function handleDayClick(year, month, day) {
+            selectedDate = new Date(year, month, day);
+            renderCalendar();
+            const mode = document.querySelector('.mode-button.active').dataset.mode;
+            updateScheduleData(selectedDate, mode);
+            drawScheduleChart(mode);
+        }
+
+        // Навігація по місяцях
+        prevMonth.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+        prevMonth.addEventListener('touchstart', () => {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+
+        nextMonth.addEventListener('click', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+        nextMonth.addEventListener('touchstart', () => {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+
+        // Налаштування канвасу
+        function setupCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const parent = scheduleChartCanvas.parentElement;
+            scheduleChartCanvas.width = parent.offsetWidth * dpr;
+            scheduleChartCanvas.height = 150 * dpr;
+            scheduleChartCanvas.style.width = `${parent.offsetWidth}px`;
+            scheduleChartCanvas.style.height = '150px';
+            ctx.scale(dpr, dpr);
+        }
+
+        // Оновлення даних
+        function updateScheduleData(selectedDate, mode) {
+            console.log(`Selected date: ${selectedDate.toISOString().split('T')[0]}, Mode: ${mode}`);
+            if (mode === 'day') {
+                scheduleData.day = Array.from({ length: 24 }, (_, i) => ({
+                    hour: i,
+                    intensity: Math.random() * 100
+                }));
+            } else if (mode === 'week') {
+                scheduleData.week = Array.from({ length: 7 }, (_, i) => ({
+                    day: i,
+                    intensity: Math.random() * 100
+                }));
+            } else if (mode === 'month') {
+                scheduleData.month = Array.from({ length: 30 }, (_, i) => ({
+                    day: i,
+                    intensity: Math.random() * 100
+                }));
+            }
+        }
+
+        // Малювання графіку
+        function drawScheduleChart(mode = 'day') {
+            setupCanvas();
+            ctx.clearRect(0, 0, scheduleChartCanvas.width, scheduleChartCanvas.height);
+
+            const width = scheduleChartCanvas.width / window.devicePixelRatio - 20;
+            const height = scheduleChartCanvas.height / window.devicePixelRatio - 20;
+            const offset = 10;
+
+            // Дані для графіку
+            const data = scheduleData[mode];
+            const xCount = mode === 'day' ? 24 : mode === 'week' ? 7 : 30;
+            const xLabels = mode === 'day' ? Array.from({ length: 25 }, (_, i) => i) :
+                          mode === 'week' ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] :
+                          Array.from({ length: 31 }, (_, i) => i);
+
+            // Малювання осей
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.moveTo(offset, offset + height);
+            ctx.lineTo(offset + width, offset + height);
+            ctx.moveTo(offset, offset + height);
+            ctx.lineTo(offset, offset);
+            ctx.stroke();
+
+            // Мітки осі X
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.font = '8px Arial';
+            ctx.textAlign = 'center';
+            for (let i = 0; i < xCount; i++) {
+                const x = offset + (i / (xCount - 1)) * width;
+                ctx.fillText(xLabels[i], x, offset + height + 10);
+            }
+
+            // Мітки осі Y
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const y = offset + height - (i / 5) * height;
+                ctx.fillText(`${i * 20}%`, offset - 5, y + 3);
+            }
+
+            // Сітка по Y
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            for (let i = 1; i < 5; i++) {
+                const y = offset + height - (i / 5) * height;
+                ctx.beginPath();
+                ctx.moveTo(offset, y);
+                ctx.lineTo(offset + width, y);
+                ctx.stroke();
+            }
+
+            // Малювання графіку
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.lineWidth = 1;
+            data.forEach((point, i) => {
+                const x = offset + (i / (data.length - 1)) * width;
+                const y = offset + height - (point.intensity / 100) * height;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+
+            // Заповнення
+            ctx.lineTo(offset + width, offset + height);
+            ctx.lineTo(offset, offset + height);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.fill();
+        }
+
+        // Перемикання режимів
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => handleModeButtonClick(button));
+            button.addEventListener('touchstart', () => handleModeButtonClick(button));
+        });
+
+        function handleModeButtonClick(button) {
+            modeButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            const mode = button.dataset.mode;
+            updateScheduleData(selectedDate, mode);
+            drawScheduleChart(mode);
+        }
+
+        // Обробка зміни розміру
+        window.addEventListener('resize', () => {
+            drawScheduleChart(document.querySelector('.mode-button.active').dataset.mode);
+        });
+
+        // Ініціалізація
+        renderCalendar();
+        drawScheduleChart();
+    </script>
+</body>
+</html>

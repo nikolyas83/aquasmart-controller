@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AquaSmart - Повний контроль</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(180deg, rgba(18, 18, 18, 0) 0%, rgba(18, 18, 18, 0.9) 15%), #041434;
+            color: #fff;
+            min-height: 100vh;
+            padding: 0;
+            overflow-y: auto;
+        }
+
+        header {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .logo {
+            width: 132px;
+            height: 25px;
+            margin-left: 0;
+            display: block;
+        }
+
+        .header-spacer {
+            width: 30%;
+        }
+
+        .antenna {
+            width: 15%;
+            padding-left: 25px;
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .antenna div {
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 2px;
+        }
+
+        .antenna div:nth-child(1) {
+            width: 4px;
+            height: 4px;
+        }
+
+        .antenna div:nth-child(2) {
+            width: 4px;
+            height: 8px;
+        }
+
+        .antenna div:nth-child(3) {
+            width: 4px;
+            height: 12px;
+        }
+
+        .antenna div:nth-child(4) {
+            width: 4px;
+            height: 16px;
+        }
+
+        .temperature {
+            width: 15%;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .bell {
+            width: 15%;
+            text-align: center;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            line-height: 24px;
+            cursor: pointer;
+        }
+
+        main {
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px 0;
+        }
+
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            gap: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            color: #fff;
+            font-size: 10px;
+            font-weight: 600;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .tab:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #fff;
+            text-align: center;
+        }
+
+        .lighting-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .channel-control {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .channel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .slider-container {
+            margin: 15px 0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .brightness-value {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+        }
+
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+
+        .btn-success {
+            background: #27ae60;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="password"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus, input[type="password"]:focus, input[type="number"]:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .calendar-day {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 80px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .calendar-day:hover {
+            background: rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .calendar-day.has-schedule {
+            background: rgba(39, 174, 96, 0.1);
+            border: 2px solid #27ae60;
+        }
+
+        .day-number {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .schedule-preview {
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        .preset-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .preset-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .preset-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+
+        .preset-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .close {
+            float: right;
+            font-size: 28px;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #667eea;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .alert-success {
+            background: rgba(39, 174, 96, 0.1);
+            border: 1px solid #27ae60;
+            color: #27ae60;
+        }
+
+        .alert-error {
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .time-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .schedule-item {
+            background: rgba(102, 126, 234, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+                font-size: 14px;
+            }
+
+            .lighting-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img class="logo" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIQAAAAZCAYAAADwvIY6AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsEAAA7BAbiRa+0AAAj7SURBVGhD7ZpnrB3FGYZ9Lr2EYooJBAIEiOjNECIINTQrJCBi0zuIYiDBAVMEMTbdxGADNkXgxFRTbJrED8DgBASChJpgeguB0EwL3fY9PO/O7N5v52w991wHJB7p1TezZ2Z2ds7MN2W30a8io6d8cCJmBTRs+O79Z0cXOwjlr4d5ysUSXkZ3oIu452vRlRzIvxNmootFfII2Id//XLQY8i+AeQz1jy44biH/sT6cQFrVaaCLRZxMukk+XBvK+zHGPp/q/Hd0J5pI2XqWQihjfsytaMPoQjafosvRJZT5VXQloMvbQrjZ+piz0TFoX12bS/wEHYdmUIfjoyv5zEI/NPopOgVV5SC0NrJl5LE0sukWQZ3kB2hbdCF6mWcfigr/K/7grzFHIg1yWzer1dGf0NOUtxG2hUodAkagOO3wssrlQb6BaFEfrcNC6HzyjkOZXo0GmYa518US1JDL+XAupJkHc5KLJcgLXuyCvYPy50Wj0JL+Uh3U+S5BU8kvL5YLbfBvzK7oi+hCPmug6ZQnm6L0jyXTYphdXCxiTbS7C1aHcnbA/A3dRVgjIORtdLLXpehZFCL3rZGcx9HoSxeM0H1Oc8FC9kZy25ZraeAXfbi3yLuqHvfw7HZKivkcPYjeQU1dyOA3qLSDUudHMIcgdQq1RSx5EIvaRh4oRaU1BA9xA2ZPF4v4J1qfm+dVPgX5V8E8jWLvoIcfRP7c+Z086qxD0GVocV3zfITWIu9/XTQN+UZi/uhiEZor1837c/199DxrRRccmn50j5dcNA15HsL83MUihpJ2gg+nIO0WmL+iePA9jrYn/Qcumob0AzBqaw0MhS1q71+S9z4XrQ7lyrto2j0zuuBQJ1mS8tQhI6q6/lFojgtGrIt2dsFKnI7sVKFG+p0LZkMlu9Hk7jmz5J1s714CFeU9D9k/Xw1h/7wQjTzbGYS8Q2ZnaIOLkG3nDZDWKplw33fQOIIbIy1yLRrAasvaUKYGhjyVPEiMFqKruqCjUoegMLnvG10sYQS9rtTDkEZ/oEa6ZQZ/9AU+XMhJQwY8gLG7BxGWl0Bd1duPQvcbaTpqwdc/XDvIO5zlgr2D8jfFhKv+8dRRz1QIad7EaDC8G13oYQvKbZn7ubYnuh/djqxHTaBMeZixyLZNasdY1UOIM5D1EnrYbVywkO3Rgi6YMIw/OnFTFbjL25hVeOgf+XALPPi9aFuju/1PIaqbnsNyDem13e0Ev/I2Znazu9u67EKoh6ZFtbtFnTir3VdEW6Nfo0m0jxbKLVDmZN8msZ7zP0VU7hA+42QXS6iyYNvK25jnZ8/66h4frsob3iY0m93h/NoOmqctmpo64h084VQ17cTBS4cjvozp3lq0sC9C06B2Nf2NtFMrpY6HEKGX2Jobbe7DeSzlrac5/fVnH6y0GDW85W1Co9FVt4wUvt4aUZar6fiv+HAn0GGbpe5AEFlbyGW9LUJnMDON/sUzB/9FK7U6BI31POZ6F0sIR1kJjVmXjxxc68/kvhpV6hSysTTX94Zw7SDvoEVXJ1nGW0ezmXLPcxktHm+iU8zrotnU9RBCc6D1EoO4STgPF5F1BlEKnWIFNMBIW8W2oL5a6A1ysYRJlPmqD/cNjUbd6UJkrZX+421ddPo5xgWzaekQNNYyaPk8keQzrxgtcoa5YCZh5VfzNoIyp6A7jC5Dhb24A5yA7LP3hXcQKS/W3T0nc/Vfgv7EEJ3pVOEqpHMby7G078E+3EKqQ5BQB0hyzdry5El/sE4vLYPJu44Ph4T7+Q1HT5lpT+t0nKvtVazD0fmoT6CeescRblv/jHcofHnWJk94G9HVNY99IVYKdVUH0umrRdOtDvaqoLw6tQyn6AmUrbOgFkIPcSpqZ3SqnHBOjglXyQvjVA7wYaFj8BkumPB7KryfD3ea4chuyXRgc44LdpxwEXnkeTe/H27Bi9DJYnjU/UydzkvaqRgdjll0WHcnbbyyi/aQdAh+1JvF/V2sLYb4MlJQIS1Ew9fax5M28jL8/iFG+/Xw8OgK0tQaUWX4BtjHxRLkHV734U5zLbKjc6VGV5fe3pZCXVfCZKW9xts6aBA86oIJOjDUIpMB2oP1EKF30OmkRn2R7BZtPpS34whHoNYi06hM1IH4Q7SY04GK3tfHaCTpDV8nzhtijkD2jWFfeod4MNzuYgkjmTIPHDHxudA7h+jbE/uiTryH9D1DLaiH1kgaCB9HF3rYBF1KGycnzlGAC1roqQPYDnEoBWlRkgv59G2E7bF6gNXIp7VGAun08Dom3TK60IP22LehfyDl2Q3tgSw65t2OMnu7zVQ9rsbYqWgC5Q714cpQTp2XW/oGQTsi2xG70Zhmszn2s0/efXvUwWsq3gJ55SW0zY/Peg7jPlf6cArSaqE82sUSFiJ90qlIo+n5ZpR0AM9w0kXrtriXht5Bbjx8d5HFdcgunDSq5TlScDM9sDpP+IZSp2d7IW2FdAoadgbxC6Tz905g3bca6lwX7Dt4dr1o09dmFrX7CY1G441FFx8wkz9K0mBIQV5936DDM72w09dQhQO0DMqbgtG3FSFnc/8dFegioB4czqs6sbPuOxPSqIHVmSyHUGb6QAZIq+NnPVy4gKzCUZSp1XJvUYPEXOXr1OdwH729PBSFXk4dQ3O5Fo55L6RmIw2y32LD3UI7aFp/0gUT5Ayuo43XVoVC76CbjnfBcqikXjzpw5cYjfo/uGAa0r6A+RmSe607BYynwpv5cLvoG0W9Up4r3sHCs2t067MBLTTtwV4lyJ85rRj0Qq60w1COzpAGo/A7TR1rT23QyFpY6L14zBdk0kcclaEMfaZmdxifUka4s0hBHr2dk2fSwYu+R9DiUR1T6wq5Wa2KNd/buVdnJAMpO/PjmCr4+y5BGb056dQ7Cnvi+iLlVT6FJL/Oew5D+twtflF1EGX8xYfbIqNeD1Nm3vpEr9BbPHm4uPi/QQW1S1F95vAQ0QjimhrtCoUND6NtSJP51fB3DZ4xHoyaGsq8QJ/zrekQedBgWlWH64cxNF7ZV9jf0wbxLuPbjI5fw0OVli+GvqcT9Ov3DZtsAcERYERCAAAAAElFTkSuQmCC">
+        <div class="header-spacer"></div>
+        <div class="antenna">
+            <div></div>
+            <div></div>
+            <div></div>
+            <div></div>
+        </div>
+        <div class="temperature" id="temp-value">50 °C</div>
+        <div class="bell">🔔</div>
+    </header>
+
+    <main>
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('lighting')">Освітлення</button>
+            <button class="tab" onclick="showTab('schedule')">Розклад</button>
+            <button class="tab" onclick="showTab('presets')">Пресети</button>
+            <button class="tab" onclick="showTab('settings')">Налаштування</button>
+        </div>
+
+        <!-- Освітлення -->
+        <div id="lighting" class="tab-content active">
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">🎨 Управління освітленням</h2>
+                    <div class="lighting-controls">
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 1</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-0" oninput="updateBrightness(0)">
+                                <div class="brightness-value" id="brightness-0">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 2</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-1" oninput="updateBrightness(1)">
+                                <div class="brightness-value" id="brightness-1">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 3</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-2" oninput="updateBrightness(2)">
+                                <div class="brightness-value" id="brightness-2">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 4</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-3" oninput="updateBrightness(3)">
+                                <div class="brightness-value" id="brightness-3">0</div>
+                            </div>
+                        </div>
+                        <div class="channel-control">
+                            <div class="channel-title">Канал 5</div>
+                            <div class="slider-container">
+                                <input type="range" min="0" max="255" value="0" id="channel-4" oninput="updateBrightness(4)">
+                                <div class="brightness-value" id="brightness-4">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="saveCurrentLighting()">💾 Зберегти як пресет</button>
+                        <button class="btn" onclick="loadLightingPreset('default')">📂 Завантажити дефолт</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Розклад -->
+        <div id="schedule" class="tab-content">
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">📅 Річний розклад</h2>
+                    <div style="margin-bottom: 20px;">
+                        <select id="year-select" onchange="loadYearSchedule()">
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                        <button class="btn" onclick="loadYearSchedule()">Оновити</button>
+                        <button class="btn btn-success" onclick="exportSchedule()">📤 Експорт</button>
+                        <button class="btn btn-danger" onclick="showImportModal()">📥 Імпорт</button>
+                    </div>
+                    <div id="calendar-container">
+                        <!-- Календар буде згенеровано JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Пресети -->
+        <div id="presets" class="tab-content">
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">🎭 Менеджер пресетів</h2>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success" onclick="exportPresets()">📤 Експорт всіх пресетів</button>
+                        <button class="btn btn-danger" onclick="showImportPresetsModal()">📥 Імпорт пресетів</button>
+                    </div>
+
+                    <h3>Освітлення</h3>
+                    <div id="lighting-presets" class="preset-list">
+                        <!-- Пресети освітлення -->
+                    </div>
+
+                    <h3>Розклади</h3>
+                    <div id="schedule-presets" class="preset-list">
+                        <!-- Пресети розкладів -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Налаштування -->
+        <div id="settings" class="tab-content">
+            <div class="dashboard">
+                <div class="section">
+                    <h2 class="section-title">⚙️ Системні налаштування</h2>
+
+                    <h3>WiFi</h3>
+                    <div class="form-group">
+                        <label>SSID:</label>
+                        <input type="text" id="wifi-ssid">
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль:</label>
+                        <input type="password" id="wifi-password">
+                    </div>
+                    <button class="btn" onclick="saveWiFi()">💾 Зберегти WiFi</button>
+
+                    <h3>MQTT</h3>
+                    <div class="form-group">
+                        <label>Сервер:</label>
+                        <input type="text" id="mqtt-server">
+                    </div>
+                    <div class="form-group">
+                        <label>Порт:</label>
+                        <input type="number" id="mqtt-port" value="1883">
+                    </div>
+                    <div class="form-group">
+                        <label>Користувач:</label>
+                        <input type="text" id="mqtt-user">
+                    </div>
+                    <div class="form-group">
+                        <label>Пароль:</label>
+                        <input type="password" id="mqtt-password">
+                    </div>
+                    <button class="btn" onclick="saveMQTT()">💾 Зберегти MQTT</button>
+
+                    <h3>Час</h3>
+                    <div class="time-inputs">
+                        <div class="form-group">
+                            <label>Рік:</label>
+                            <input type="number" id="time-year">
+                        </div>
+                        <div class="form-group">
+                            <label>Місяць:</label>
+                            <input type="number" id="time-month" min="1" max="12">
+                        </div>
+                        <div class="form-group">
+                            <label>День:</label>
+                            <input type="number" id="time-day" min="1" max="31">
+                        </div>
+                        <div class="form-group">
+                            <label>Година:</label>
+                            <input type="number" id="time-hour" min="0" max="23">
+                        </div>
+                        <div class="form-group">
+                            <label>Хвилина:</label>
+                            <input type="number" id="time-minute" min="0" max="59">
+                        </div>
+                        <div class="form-group">
+                            <label>Секунда:</label>
+                            <input type="number" id="time-second" min="0" max="59">
+                        </div>
+                    </div>
+                    <button class="btn" onclick="setTime()">⏰ Встановити час</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Модальні вікна -->
+    <div id="day-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeDayModal()">&times;</span>
+            <h3 id="day-modal-title">Розклад на день</h3>
+            <div id="day-schedule">
+                <!-- Розклад дня -->
+            </div>
+            <button class="btn" onclick="addScheduleItem()">➕ Додати перехід</button>
+            <button class="btn btn-success" onclick="saveDaySchedule()">💾 Зберегти</button>
+        </div>
+    </div>
+
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeImportModal()">&times;</span>
+            <h3>Імпорт розкладу</h3>
+            <textarea id="import-data" placeholder="Вставте JSON розкладу..." rows="20"></textarea>
+            <button class="btn btn-success" onclick="importSchedule()">📥 Імпортувати</button>
+        </div>
+    </div>
+
+    <div id="import-presets-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeImportPresetsModal()">&times;</span>
+            <h3>Імпорт пресетів</h3>
+            <textarea id="import-presets-data" placeholder="Вставте JSON пресетів..." rows="20"></textarea>
+            <button class="btn btn-success" onclick="importPresets()">📥 Імпортувати</button>
+        </div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <script>
+        let currentTab = 'lighting';
+        let currentYear = 2025;
+        let selectedDate = null;
+        let dayScheduleData = [];
+
+        // Ініціалізація
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStatus();
+            loadLightingPresets();
+            loadSchedulePresets();
+            loadYearSchedule();
+            setInterval(loadStatus, 5000); // Оновлення статусу кожні 5 секунд
+        });
+
+        // Навігація по табах
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            document.querySelector(`.tab:nth-child(${getTabIndex(tabName) + 1})`).classList.add('active');
+            document.getElementById(tabName).classList.add('active');
+            currentTab = tabName;
+        }
+
+        function getTabIndex(tabName) {
+            const tabs = ['lighting', 'schedule', 'presets', 'settings'];
+            return tabs.indexOf(tabName);
+        }
+
+        // Статус системи
+        async function loadStatus() {
+            try {
+                // Тут можна додати отримання температури через API
+                document.getElementById('temp-value').textContent = '24.5°C';
+            } catch (error) {
+                console.error('Помилка завантаження статусу:', error);
+            }
+        }
+
+        // Управління освітленням
+        function updateBrightness(channel) {
+            const value = document.getElementById(`channel-${channel}`).value;
+            document.getElementById(`brightness-${channel}`).textContent = value;
+
+            // Відправка на сервер
+            fetch('/set-brightness', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `channel=${channel}&value=${value}`
+            }).catch(error => console.error('Помилка:', error));
+        }
+
+        async function saveCurrentLighting() {
+            const name = prompt('Введіть назву пресету:');
+            if (!name) return;
+
+            const config = {
+                timestamp: Date.now(),
+                channels: []
+            };
+
+            for (let i = 0; i < 5; i++) {
+                config.channels.push({
+                    id: i,
+                    brightness: parseInt(document.getElementById(`channel-${i}`).value)
+                });
+            }
+
+            try {
+                const response = await fetch('/api/presets/lighting/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `name=${encodeURIComponent(name)}&config=${encodeURIComponent(JSON.stringify(config))}`
+                });
+
+                if (response.ok) {
+                    showAlert('Пресет освітлення збережено!', 'success');
+                    loadLightingPresets();
+                } else {
+                    showAlert('Помилка збереження пресету', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function loadLightingPreset(name) {
+            try {
+                const response = await fetch('/api/presets/lighting/load', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `name=${encodeURIComponent(name)}`
+                });
+
+                if (response.ok) {
+                    showAlert('Пресет завантажено!', 'success');
+                    // Оновити слайдери
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert('Помилка завантаження пресету', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        // Розклад
+        async function loadYearSchedule() {
+            currentYear = document.getElementById('year-select').value;
+            const container = document.getElementById('calendar-container');
+            container.innerHTML = '<div class="loading"></div> Завантаження...';
+
+            try {
+                const response = await fetch(`/api/schedule/year/${currentYear}`);
+                const data = await response.json();
+
+                renderCalendar(data);
+            } catch (error) {
+                container.innerHTML = 'Помилка завантаження розкладу';
+                console.error('Помилка:', error);
+            }
+        }
+
+        function renderCalendar(scheduleData) {
+            const container = document.getElementById('calendar-container');
+            const today = new Date();
+            const isCurrentYear = today.getFullYear() == currentYear;
+
+            let html = '<div class="calendar-grid">';
+
+            // Заголовки днів тижня
+            const daysOfWeek = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+            daysOfWeek.forEach(day => {
+                html += `<div style="font-weight: bold; padding: 10px;">${day}</div>`;
+            });
+
+            // Визначення першого дня року
+            const firstDay = new Date(currentYear, 0, 1);
+            const startDay = firstDay.getDay(); // 0 = Неділя
+
+            // Порожні клітинки на початку
+            for (let i = 0; i < startDay; i++) {
+                html += '<div></div>';
+            }
+
+            // Дні року
+            for (let month = 0; month < 12; month++) {
+                const daysInMonth = new Date(currentYear, month + 1, 0).getDate();
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dateStr = `${currentYear}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const monthDay = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+                    let className = 'calendar-day';
+                    if (scheduleData && scheduleData[monthDay]) {
+                        className += ' has-schedule';
+                    }
+
+                    const isToday = isCurrentYear && today.getMonth() === month && today.getDate() === day;
+
+                    html += `
+                        <div class="${className}" onclick="openDaySchedule('${dateStr}')">
+                            <div class="day-number">${day}${isToday ? ' 📅' : ''}</div>
+                            <div class="schedule-preview">
+                                ${scheduleData && scheduleData[monthDay] ? scheduleData[monthDay].length + ' переходів' : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        async function openDaySchedule(date) {
+            selectedDate = date;
+            document.getElementById('day-modal-title').textContent = `Розклад на ${date}`;
+
+            try {
+                const response = await fetch(`/api/schedule/day/${date}`);
+                dayScheduleData = await response.json();
+
+                renderDaySchedule();
+                document.getElementById('day-modal').style.display = 'flex';
+            } catch (error) {
+                showAlert('Помилка завантаження розкладу дня', 'error');
+            }
+        }
+
+        function renderDaySchedule() {
+            const container = document.getElementById('day-schedule');
+
+            if (!dayScheduleData || dayScheduleData.length === 0) {
+                container.innerHTML = '<p>Немає розкладу на цей день</p>';
+                return;
+            }
+
+            let html = '';
+            dayScheduleData.forEach((item, index) => {
+                html += `
+                    <div class="schedule-item">
+                        <div>
+                            <strong>${item.time}</strong> → ${item.preset}
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="removeScheduleItem(${index})">❌</button>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function addScheduleItem() {
+            const time = prompt('Введіть час (HH:MM):', '08:00');
+            if (!time) return;
+
+            const preset = prompt('Введіть назву пресету:', 'sunrise');
+            if (!preset) return;
+
+            dayScheduleData.push({ time, preset });
+            renderDaySchedule();
+        }
+
+        function removeScheduleItem(index) {
+            dayScheduleData.splice(index, 1);
+            renderDaySchedule();
+        }
+
+        async function saveDaySchedule() {
+            try {
+                const response = await fetch(`/api/schedule/day/${selectedDate}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dayScheduleData)
+                });
+
+                if (response.ok) {
+                    showAlert('Розклад збережено!', 'success');
+                    closeDayModal();
+                    loadYearSchedule();
+                } else {
+                    showAlert('Помилка збереження розкладу', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        function closeDayModal() {
+            document.getElementById('day-modal').style.display = 'none';
+        }
+
+        async function exportSchedule() {
+            try {
+                const response = await fetch('/api/schedule/export');
+                const data = await response.text();
+
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `schedule_${currentYear}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                showAlert('Розклад експортовано!', 'success');
+            } catch (error) {
+                showAlert('Помилка експорту', 'error');
+            }
+        }
+
+        function showImportModal() {
+            document.getElementById('import-modal').style.display = 'flex';
+        }
+
+        function closeImportModal() {
+            document.getElementById('import-modal').style.display = 'none';
+        }
+
+        async function importSchedule() {
+            const data = document.getElementById('import-data').value;
+            if (!data.trim()) {
+                showAlert('Введіть дані для імпорту', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/schedule/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+
+                if (response.ok) {
+                    showAlert('Розклад імпортовано!', 'success');
+                    closeImportModal();
+                    loadYearSchedule();
+                } else {
+                    showAlert('Помилка імпорту', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        // Пресети
+        async function loadLightingPresets() {
+            try {
+                const response = await fetch('/api/presets/lighting');
+                const presets = await response.json();
+
+                const container = document.getElementById('lighting-presets');
+                container.innerHTML = '';
+
+                presets.forEach(preset => {
+                    container.innerHTML += `
+                        <div class="preset-card">
+                            <div class="preset-name">${preset.name}</div>
+                            <div class="preset-actions">
+                                <button class="btn btn-sm" onclick="loadLightingPreset('${preset.name}')">📂</button>
+                                <button class="btn btn-danger btn-sm" onclick="deletePreset('lighting', '${preset.name}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Помилка завантаження пресетів освітлення:', error);
+            }
+        }
+
+        async function loadSchedulePresets() {
+            try {
+                const response = await fetch('/api/presets/schedule');
+                const presets = await response.json();
+
+                const container = document.getElementById('schedule-presets');
+                container.innerHTML = '';
+
+                presets.forEach(preset => {
+                    container.innerHTML += `
+                        <div class="preset-card">
+                            <div class="preset-name">${preset.name}</div>
+                            <div class="preset-actions">
+                                <button class="btn btn-sm" onclick="loadSchedulePreset('${preset.name}')">📂</button>
+                                <button class="btn btn-danger btn-sm" onclick="deletePreset('schedule', '${preset.name}')">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Помилка завантаження пресетів розкладів:', error);
+            }
+        }
+
+        async function deletePreset(type, name) {
+            if (!confirm(`Видалити пресет "${name}"?`)) return;
+
+            try {
+                const response = await fetch('/api/presets/delete', {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `type=${encodeURIComponent(type)}&name=${encodeURIComponent(name)}`
+                });
+
+                if (response.ok) {
+                    showAlert('Пресет видалено!', 'success');
+                    if (type === 'lighting') {
+                        loadLightingPresets();
+                    } else {
+                        loadSchedulePresets();
+                    }
+                } else {
+                    showAlert('Помилка видалення', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function exportPresets() {
+            try {
+                const response = await fetch('/api/presets/export');
+                const data = await response.text();
+
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'presets_backup.json';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                showAlert('Пресети експортовано!', 'success');
+            } catch (error) {
+                showAlert('Помилка експорту', 'error');
+            }
+        }
+
+        function showImportPresetsModal() {
+            document.getElementById('import-presets-modal').style.display = 'flex';
+        }
+
+        function closeImportPresetsModal() {
+            document.getElementById('import-presets-modal').style.display = 'none';
+        }
+
+        async function importPresets() {
+            const data = document.getElementById('import-presets-data').value;
+            if (!data.trim()) {
+                showAlert('Введіть дані для імпорту', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/presets/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: data
+                });
+
+                if (response.ok) {
+                    showAlert('Пресети імпортовано!', 'success');
+                    closeImportPresetsModal();
+                    loadLightingPresets();
+                    loadSchedulePresets();
+                } else {
+                    showAlert('Помилка імпорту', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        // Налаштування
+        async function saveWiFi() {
+            const ssid = document.getElementById('wifi-ssid').value;
+            const password = document.getElementById('wifi-password').value;
+
+            if (!ssid) {
+                showAlert('Введіть SSID', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/set-wifi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `ssid=${encodeURIComponent(ssid)}&password=${encodeURIComponent(password)}`
+                });
+
+                if (response.ok) {
+                    showAlert('WiFi налаштування збережено!', 'success');
+                } else {
+                    showAlert('Помилка збереження WiFi', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function saveMQTT() {
+            const server = document.getElementById('mqtt-server').value;
+            const port = document.getElementById('mqtt-port').value;
+            const user = document.getElementById('mqtt-user').value;
+            const password = document.getElementById('mqtt-password').value;
+
+            try {
+                const response = await fetch('/set-mqtt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `server=${encodeURIComponent(server)}&port=${port}&user=${encodeURIComponent(user)}&pass=${encodeURIComponent(password)}`
+                });
+
+                if (response.ok) {
+                    showAlert('MQTT налаштування збережено!', 'success');
+                } else {
+                    showAlert('Помилка збереження MQTT', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        async function setTime() {
+            const year = document.getElementById('time-year').value;
+            const month = document.getElementById('time-month').value;
+            const day = document.getElementById('time-day').value;
+            const hour = document.getElementById('time-hour').value;
+            const minute = document.getElementById('time-minute').value;
+            const second = document.getElementById('time-second').value;
+
+            try {
+                const response = await fetch('/set-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `year=${year}&month=${month}&day=${day}&hour=${hour}&minute=${minute}&second=${second}`
+                });
+
+                if (response.ok) {
+                    showAlert('Час встановлено!', 'success');
+                    loadStatus();
+                } else {
+                    showAlert('Помилка встановлення часу', 'error');
+                }
+            } catch (error) {
+                showAlert('Помилка: ' + error.message, 'error');
+            }
+        }
+
+        // Службові функції
+        function showAlert(message, type = 'info') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+
+            container.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Автоматичне завантаження яскравості каналів при старті
+        async function loadCurrentBrightness() {
+            // Тут можна додати API для отримання поточної яскравості
+            // Поки що залишаємо як є
+        }
+
+        loadCurrentBrightness();
+    </script>
+</body>
+</html>
