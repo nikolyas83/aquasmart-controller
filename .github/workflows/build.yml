@@ -1,0 +1,35 @@
+name: Build AquaSmart Firmware & LittleFS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PlatformIO & Compile
+        run: |
+          python3 -m venv venv
+          ./venv/bin/pip install --upgrade pip platformio
+          ./venv/bin/pio run
+          ./venv/bin/pio run --target buildfs
+
+      - name: Upload Binaries to Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete aquasmart-latest --yes || true
+          gh release create aquasmart-latest \
+            .pio/build/esp32dev/firmware.bin \
+            .pio/build/esp32dev/littlefs.bin \
+            --title "AquaSmart Latest Build" \
+            --notes "Готовые образы firmware.bin и littlefs.bin"
