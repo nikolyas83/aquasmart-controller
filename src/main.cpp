@@ -48,11 +48,9 @@ void RTCTask(void* pv) {
   static unsigned long lastSync = 0;
   for (;;) {
     if (WiFi.status() == WL_CONNECTED && (lastSync == 0 || millis() - lastSync > 3600000UL)) {
-      if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(500)) == pdTRUE) {
-        syncTimeWithNTP("pool.ntp.org");
-        xSemaphoreGive(i2cMutex);
-        lastSync = millis();
-      }
+      // RTC.cpp сам берет i2cMutex только после получения ответа от NTP
+      syncTimeWithNTP("pool.ntp.org");
+      lastSync = millis();
     }
     vTaskDelay(pdMS_TO_TICKS(10000));
   }
@@ -67,8 +65,6 @@ void MQTTTask(void* pv) {
 
 void ScheduleTask(void* pv) {
   for (;;) {
-    // Защищаем чтение времени из DS1307; при загрузке пресета мьютекс уже отпущен
-    // или используем отдельный вызов, так как loadLightingPreset вызывает setChannelBrightness
     handleSchedule();
     vTaskDelay(pdMS_TO_TICKS(5000));
   }
@@ -81,7 +77,6 @@ void setup() {
 
   i2cMutex = xSemaphoreCreateMutex();
 
-  initEEPROM();
   if (!LittleFS.begin(true)) {
     Serial.println("CRITICAL: LittleFS mount failed!");
   }
@@ -89,13 +84,14 @@ void setup() {
   Wire.begin();
   Wire.setTimeOut(50);
 
+  initMQTT();     // Сначала задаём таймаут и размер буфера MQTT
+  initEEPROM();   // Загружаем настройки из NVS и применяем их к MQTT и HTTP
   initTemperature();
   initWiFi();
   initRTC();
   initLight();
   initPresets();
   initSchedule();
-  initMQTT();
   initWebServer();
 
   xTaskCreatePinnedToCore(WiFiTask,     "WiFiTask",     4096, nullptr, 2, &wifiTaskHandle,     1);
