@@ -31,10 +31,8 @@ void WiFiTask(void* pv) {
 
 void LightTask(void* pv) {
   for (;;) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-      handleLightEffects();
-      xSemaphoreGive(i2cMutex);
-    }
+    // LightControl сам захватывает i2cMutex при обращении к PCA9685
+    handleLightEffects();
     vTaskDelay(pdMS_TO_TICKS(50));
   }
 }
@@ -69,10 +67,9 @@ void MQTTTask(void* pv) {
 
 void ScheduleTask(void* pv) {
   for (;;) {
-    if (xSemaphoreTake(i2cMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
-      handleSchedule();
-      xSemaphoreGive(i2cMutex);
-    }
+    // Защищаем чтение времени из DS1307; при загрузке пресета мьютекс уже отпущен
+    // или используем отдельный вызов, так как loadLightingPreset вызывает setChannelBrightness
+    handleSchedule();
     vTaskDelay(pdMS_TO_TICKS(5000));
   }
 }
@@ -90,7 +87,7 @@ void setup() {
   }
 
   Wire.begin();
-  Wire.setTimeOut(50); // Защита от вечного зависания I2C при помехах
+  Wire.setTimeOut(50);
 
   initTemperature();
   initWiFi();
@@ -109,9 +106,9 @@ void setup() {
   xTaskCreatePinnedToCore(ScheduleTask, "ScheduleTask", 8192, nullptr, 1, &scheduleTaskHandle, 1);
 
   Serial.println("Усі таски створені. Видаляємо пустий loopTask.");
-  vTaskDelete(nullptr); // Освобождаем 8 КБ RAM от пустого loop()
+  vTaskDelete(nullptr);
 }
 
 void loop() {
-  // Не используется, задача удалена в setup()
+  // Не используется
 }
