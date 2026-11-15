@@ -1,21 +1,106 @@
 #include "ScheduleControl.h"
 #include <LittleFS.h>
 #include <ArduinoJson.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/semphr.h>
 #include "LightControl.h"
 #include "RTC.h"
 #include "PresetControl.h"
 
 static const char* SCHEDULE_FILE = "/schedules/yearly.json";
+static const char* TEMP_SCHEDULE_FILE = "/schedules/yearly.tmp";
+static const size_t MAX_DAILY_TRANSITIONS = 24;
+
+struct TransitionItem {
+  int minutes;
+  char preset[32];
+};
+
+static TransitionItem cachedTransitions[MAX_DAILY_TRANSITIONS];
+static size_t cachedCount = 0;
+static bool cacheValid = false;
+
 static String currentPreset = "";
 static String currentDay = "";
+static SemaphoreHandle_t fsMutex = nullptr;
+
+static bool lockFS(TickType_t timeout = pdMS_TO_TICKS(2000)) {
+  if (!fsMutex) {
+    fsMutex = xSemaphoreCreateMutex();
+  }
+  return (fsMutex != nullptr) && (xSemaphoreTake(fsMutex, timeout) == pdTRUE);
+}
+
+static void unlockFS() {
+  if (fsMutex) {
+    xSemaphoreGive(fsMutex);
+  }
+}
+
+// Загрузка расписания на конкретный день в быстрый RAM-кэш
+static void reloadDailyCache(const String& dateStr) {
+  cachedCount = 0;
+  cacheValid = false;
+
+  if (!lockFS()) return;
+
+  File file = LittleFS.open(SCHEDULE_FILE, "r");
+  if (!file) {
+    unlockFS();
+    cacheValid = true;
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, file);
+  file.close();
+  unlockFS();
+
+  if (error) {
+    Serial.println("Cache parse error: " + String(error.c_str()));
+    return;
+  }
+
+  char yearKey[8];
+  dateStr.substring(0, 4).toCharArray(yearKey, sizeof(yearKey));
+  String monthDay = dateStr.substring(5);
+
+  if (doc[yearKey].is<JsonObject>() && doc[yearKey][monthDay].is<JsonArray>()) {
+    JsonArray arr = doc[yearKey][monthDay].as<JsonArray>();
+    for (JsonObject obj : arr) {
+      if (cachedCount >= MAX_DAILY_TRANSITIONS) break;
+
+      String tStr = obj["time"] | "";
+      String pStr = obj["preset"] | "";
+      tStr.trim();
+      pStr.trim();
+
+      if (tStr.length() >= 5 && !pStr.isEmpty()) {
+        int h = tStr.substring(0, 2).toInt();
+        int m = tStr.substring(3, 5).toInt();
+        cachedTransitions[cachedCount].minutes = h * 60 + m;
+        pStr.toCharArray(cachedTransitions[cachedCount].preset, sizeof(cachedTransitions[cachedCount].preset));
+        cachedCount++;
+      }
+    }
+  }
+
+  cacheValid = true;
+  Serial.printf("Schedule cache updated for %s (%u transitions)\n", dateStr.c_str(), (unsigned int)cachedCount);
+}
 
 void initSchedule() {
+  if (!fsMutex) {
+    fsMutex = xSemaphoreCreateMutex();
+  }
+
   if (!LittleFS.begin(true)) {
     Serial.println("Failed to mount LittleFS for schedule");
     return;
   }
 
-  // Створюємо директорію якщо потрібно
+  if (!lockFS()) return;
+
   if (!LittleFS.exists("/schedules")) {
     LittleFS.mkdir("/schedules");
   }
@@ -26,35 +111,38 @@ void initSchedule() {
       file.println("{}");
       file.close();
       Serial.println("Created empty yearly.json");
-    } else {
-      Serial.println("Failed to create yearly.json");
     }
   }
+  unlockFS();
   Serial.println("Schedule initialized");
 }
 
 String getDaySchedule(const String& date) {
+  if (!lockFS()) return "[]";
+
   File file = LittleFS.open(SCHEDULE_FILE, "r");
   if (!file) {
+    unlockFS();
     return "[]";
   }
 
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, file);
   file.close();
+  unlockFS();
 
   if (error) {
     Serial.println("Failed to parse yearly.json: " + String(error.c_str()));
     return "[]";
   }
 
-  // Розбираємо дату YYYY-MM-DD на рік та MM-DD
-  int year = date.substring(0, 4).toInt();
+  char yearKey[8];
+  date.substring(0, 4).toCharArray(yearKey, sizeof(yearKey));
   String monthDay = date.substring(5);
 
-  if (doc.containsKey(String(year)) && doc[String(year)].containsKey(monthDay)) {
+  if (doc[yearKey].is<JsonObject>() && doc[yearKey][monthDay].is<JsonArray>()) {
     String json;
-    serializeJson(doc[String(year)][monthDay], json);
+    serializeJson(doc[yearKey][monthDay], json);
     return json;
   }
 
@@ -62,70 +150,80 @@ String getDaySchedule(const String& date) {
 }
 
 bool setDaySchedule(const String& date, const String& scheduleJson) {
-  File file = LittleFS.open(SCHEDULE_FILE, "r");
-  JsonDocument doc;
-
-  if (file) {
-    DeserializationError error = deserializeJson(doc, file);
-    file.close();
-    if (error) {
-      Serial.println("Failed to parse yearly.json: " + String(error.c_str()));
-      return false;
-    }
-  }
-
-  // Розбираємо дату YYYY-MM-DD на рік та MM-DD
-  int year = date.substring(0, 4).toInt();
-  String monthDay = date.substring(5);
-
-  // Парсимо новий розклад
   JsonDocument newSchedule;
   DeserializationError error = deserializeJson(newSchedule, scheduleJson);
-  if (error) {
-    Serial.println("Failed to parse schedule JSON: " + String(error.c_str()));
+  if (error || !newSchedule.is<JsonArray>()) {
+    Serial.println("Invalid schedule JSON");
     return false;
   }
 
-  // Створюємо структуру року якщо потрібно
-  if (!doc.containsKey(String(year))) {
-    doc.createNestedObject(String(year));
+  if (!lockFS()) return false;
+
+  JsonDocument doc;
+  File file = LittleFS.open(SCHEDULE_FILE, "r");
+  if (file) {
+    deserializeJson(doc, file);
+    file.close();
   }
 
-  // Зберігаємо розклад на день
-  doc[String(year)][monthDay] = newSchedule;
+  char yearKey[8];
+  date.substring(0, 4).toCharArray(yearKey, sizeof(yearKey));
+  String monthDay = date.substring(5);
 
-  // Записуємо назад у файл
-  file = LittleFS.open(SCHEDULE_FILE, "w");
-  if (!file) {
-    Serial.println("Failed to write yearly.json");
+  if (!doc[yearKey].is<JsonObject>()) {
+    doc[yearKey].to<JsonObject>();
+  }
+  doc[yearKey][monthDay] = newSchedule;
+
+  // Атомарная запись через временный файл
+  File tmpFile = LittleFS.open(TEMP_SCHEDULE_FILE, "w");
+  if (!tmpFile) {
+    unlockFS();
+    Serial.println("Failed to open temp schedule file");
     return false;
   }
 
-  serializeJson(doc, file);
-  file.close();
+  size_t written = serializeJson(doc, tmpFile);
+  tmpFile.close();
+
+  if (written > 0) {
+    LittleFS.remove(SCHEDULE_FILE);
+    LittleFS.rename(TEMP_SCHEDULE_FILE, SCHEDULE_FILE);
+  }
+  unlockFS();
+
+  // Сбрасываем кэш, если изменили расписание на текущий день
+  if (date == currentDay) {
+    cacheValid = false;
+    currentPreset = "";
+  }
 
   Serial.println("Updated schedule for " + date);
-  return true;
+  return written > 0;
 }
 
 String getYearSchedule(int year) {
+  if (!lockFS()) return "{}";
+
   File file = LittleFS.open(SCHEDULE_FILE, "r");
   if (!file) {
+    unlockFS();
     return "{}";
   }
 
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, file);
   file.close();
+  unlockFS();
 
-  if (error) {
-    Serial.println("Failed to parse yearly.json: " + String(error.c_str()));
-    return "{}";
-  }
+  if (error) return "{}";
 
-  if (doc.containsKey(String(year))) {
+  char yearKey[8];
+  snprintf(yearKey, sizeof(yearKey), "%04d", year);
+
+  if (doc[yearKey].is<JsonObject>()) {
     String json;
-    serializeJson(doc[String(year)], json);
+    serializeJson(doc[yearKey], json);
     return json;
   }
 
@@ -133,124 +231,116 @@ String getYearSchedule(int year) {
 }
 
 bool importSchedule(const String& json) {
-  File file = LittleFS.open(SCHEDULE_FILE, "w");
-  if (!file) {
-    Serial.println("Failed to write yearly.json");
+  // Проверяем валидность JSON до записи на флеш
+  JsonDocument checkDoc;
+  if (deserializeJson(checkDoc, json) || !checkDoc.is<JsonObject>()) {
+    Serial.println("Rejected invalid schedule import");
     return false;
   }
 
-  file.print(json);
-  file.close();
+  if (!lockFS()) return false;
 
+  File tmpFile = LittleFS.open(TEMP_SCHEDULE_FILE, "w");
+  if (!tmpFile) {
+    unlockFS();
+    return false;
+  }
+
+  size_t written = tmpFile.print(json);
+  tmpFile.close();
+
+  if (written > 0) {
+    LittleFS.remove(SCHEDULE_FILE);
+    LittleFS.rename(TEMP_SCHEDULE_FILE, SCHEDULE_FILE);
+  }
+  unlockFS();
+
+  cacheValid = false;
+  currentPreset = "";
   Serial.println("Schedule imported successfully");
-  return true;
+  return written > 0;
 }
 
 String exportSchedule() {
+  if (!lockFS()) return "{}";
+
   File file = LittleFS.open(SCHEDULE_FILE, "r");
   if (!file) {
+    unlockFS();
     return "{}";
   }
 
-  JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, file);
+  String raw = file.readString();
   file.close();
+  unlockFS();
 
-  if (error) {
-    Serial.println("Failed to parse yearly.json: " + String(error.c_str()));
-    return "{}";
-  }
-
-  String json;
-  serializeJson(doc, json);
-  return json;
+  return raw.isEmpty() ? "{}" : raw;
 }
 
 String getCurrentDaySchedule() {
   String datetime = getCurrentDateTime();
-  if (datetime == "----/--/-- --:--:--") {
-    return "[]";
-  }
+  if (datetime == "----/--/-- --:--:--") return "[]";
 
   int year, month, day;
-  sscanf(datetime.c_str(), "%d/%d/%d", &year, &month, &day);
+  if (sscanf(datetime.c_str(), "%d/%d/%d", &year, &month, &day) != 3) return "[]";
 
   char dateStr[11];
   snprintf(dateStr, sizeof(dateStr), "%04d-%02d-%02d", year, month, day);
-
   return getDaySchedule(String(dateStr));
 }
 
 void handleSchedule() {
   static unsigned long lastCheck = 0;
-
-  if (millis() - lastCheck < 60000) return; // Перевіряємо щохвилини
+  if (millis() - lastCheck < 15000) return; // Проверяем каждые 15 сек (теперь это бесплатно для CPU/Flash)
   lastCheck = millis();
 
   String datetime = getCurrentDateTime();
   if (datetime == "----/--/-- --:--:--") return;
 
   int year, month, day, hour, minute, second;
-  sscanf(datetime.c_str(), "%d/%d/%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second);
+  if (sscanf(datetime.c_str(), "%d/%d/%d %d:%d:%d", &year, &month, &day, &hour, &minute, &second) != 6) {
+    return;
+  }
 
   char dateStr[11];
   snprintf(dateStr, sizeof(dateStr), "%04d-%02d-%02d", year, month, day);
   String currentDate = String(dateStr);
 
-  // Створюємо час у хвилинах від початку доби для порівняння
-  int currentMinutes = hour * 60 + minute;
-
-  // Перевіряємо чи змінився день
   if (currentDay != currentDate) {
     currentDay = currentDate;
     currentPreset = "";
+    cacheValid = false;
     Serial.println("New day: " + currentDate);
   }
 
-  // Отримуємо розклад на поточний день
-  String dayScheduleJson = getDaySchedule(currentDate);
-  if (dayScheduleJson == "[]") {
-    // Немає розкладу на цей день, використовуємо дефолтний пресет
+  if (!cacheValid) {
+    reloadDailyCache(currentDate);
+  }
+
+  if (cachedCount == 0) {
     if (currentPreset != "default") {
-      loadLightingPreset("default");
-      currentPreset = "default";
+      if (loadLightingPreset("default")) {
+        currentPreset = "default";
+      }
     }
     return;
   }
 
-  // Парсимо розклад дня
-  JsonDocument daySchedule;
-  DeserializationError error = deserializeJson(daySchedule, dayScheduleJson);
-  if (error) {
-    Serial.println("Failed to parse day schedule: " + String(error.c_str()));
-    return;
-  }
-
-  // Знаходимо поточний період
+  int currentMinutes = hour * 60 + minute;
+  int bestMinutes = -1;
   String targetPreset = "";
-  JsonArray schedule = daySchedule.as<JsonArray>();
 
-  for (size_t i = 0; i < schedule.size(); i++) {
-    JsonObject transition = schedule[i];
-    String timeStr = transition["time"];
-    String preset = transition["preset"];
-
-    // Розбираємо час HH:MM
-    int transitionHour = timeStr.substring(0, 2).toInt();
-    int transitionMinute = timeStr.substring(3, 5).toInt();
-    int transitionMinutes = transitionHour * 60 + transitionMinute;
-
-    if (currentMinutes >= transitionMinutes) {
-      targetPreset = preset;
-    } else {
-      break; // Переходи відсортовані за часом, можна зупинитися
+  // Ищем самый поздний переход, время которого уже наступило (независимо от порядка в JSON)
+  for (size_t i = 0; i < cachedCount; i++) {
+    if (cachedTransitions[i].minutes <= currentMinutes && cachedTransitions[i].minutes >= bestMinutes) {
+      bestMinutes = cachedTransitions[i].minutes;
+      targetPreset = String(cachedTransitions[i].preset);
     }
   }
 
-  // Якщо знайдено цільовий пресет і він відрізняється від поточного
   if (!targetPreset.isEmpty() && targetPreset != currentPreset) {
     if (loadLightingPreset(targetPreset)) {
-      Serial.println("Loaded preset '" + targetPreset + "' for " + String(hour) + ":" + String(minute < 10 ? "0" : "") + String(minute));
+      Serial.printf("Loaded preset '%s' at %02d:%02d\n", targetPreset.c_str(), hour, minute);
       currentPreset = targetPreset;
     } else {
       Serial.println("Failed to load preset: " + targetPreset);
