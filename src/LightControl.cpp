@@ -1,35 +1,25 @@
 #include "LightControl.h"
-#include <Wire.h>
-#include <Adafruit_PWMServoDriver.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
+#include <Arduino.h>
 #include <math.h>
 
-// Используем глобальный мьютекс шины I2C из main.cpp
-extern SemaphoreHandle_t i2cMutex;
+// 5 прямых PWM-выходов ESP32 (свободные от I2C 21/22, OneWire 4 и strapping-пинов)
+static const uint8_t PWM_PINS = {16, 17, 18, 19, 23};
 
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40);
-int savedBrightness[5] = {0, 0, 0, 0, 0};    // Опорная яркость (старт для эффектов)
-int currentBrightness[5] = {0, 0, 0, 0, 0};  // Фактическая текущая яркость для API/UI
-float gammaCoefficients[5] = {2.8, 2.8, 2.8, 2.8, 2.8};
-int maxBrightness[5] = {255, 255, 255, 255, 255};
+static const uint8_t PWM_RESOLUTION = 13;        // 13 бит = 0..8191 (плавный старт с 0%)
+static const uint32_t PWM_MAX_DUTY  = 8191;
+static float currentPwmFreq         = 5000.0f;   // 5 кГц — бесшумная работа MOSFET-драйверов
 
-bool lightInitialized = false;
-String currentMode = "manual";
+int savedBrightness   = {0, 0, 0, 0, 0};
+int currentBrightness = {0, 0, 0, 0, 0};
+float gammaCoefficients = {2.8f, 2.8f, 2.8f, 2.8f, 2.8f};
+int maxBrightness     = {255, 255, 255, 255, 255};
+
+bool lightInitialized         = false;
+String currentMode            = "manual";
 unsigned long effectStartTime = 0;
-unsigned long effectDuration = 0;
-int effectChannels[5] = {0, 0, 0, 0, 0};
+unsigned long effectDuration  = 0;
+int effectChannels         = {0, 0, 0, 0, 0};
 
-static bool lockI2C(TickType_t timeout = pdMS_TO_TICKS(100)) {
-  if (!i2cMutex) return true; // До старта FreeRTOS работаем напрямую
-  return xSemaphoreTake(i2cMutex, timeout) == pdTRUE;
-}
-
-static void unlockI2C() {
-  if (i2cMutex) xSemaphoreGive(i2cMutex);
-}
-
-// Внутренняя функция записи в PCA9685 без повторного захвата мьютекса
 static void writeChannelHardware(int channel, int brightness) {
   if (!lightInitialized || channel < 0 || channel >= 5) return;
 
@@ -40,31 +30,22 @@ static void writeChannelHardware(int channel, int brightness) {
                        ? ((float)brightness / (float)maxBrightness[channel])
                        : 0.0f;
   float gammaCorrected = powf(normalized, gammaCoefficients[channel]);
-  int pwmValue = (int)(gammaCorrected * 4095.0f + 0.5f);
+  uint32_t duty = (uint32_t)(gammaCorrected * (float)PWM_MAX_DUTY + 0.5f);
 
-  if (lockI2C()) {
-    pwm.setPWM(channel, 0, pwmValue);
-    unlockI2C();
-  }
+  ledcWrite(PWM_PINS[channel], duty);
 }
 
 void initLight() {
-  if (!lockI2C(pdMS_TO_TICKS(500))) return;
-
-  Wire.beginTransmission(0x40);
-  if (Wire.endTransmission() != 0) {
-    unlockI2C();
-    Serial.println("Error: PCA9685 not found");
-    lightInitialized = false;
-    return;
+  for (int i = 0; i < 5; i++) {
+    pinMode(PWM_PINS[i], OUTPUT);
+    digitalWrite(PWM_PINS[i], LOW);
+    ledcAttach(PWM_PINS[i], (uint32_t)currentPwmFreq, PWM_RESOLUTION);
+    ledcWrite(PWM_PINS[i], 0);
   }
 
-  pwm.begin();
-  pwm.setPWMFreq(1000);
   lightInitialized = true;
-  unlockI2C();
+  Serial.println("ESP32 LEDC 5-channel PWM initialized (GPIO 16, 17, 18, 19, 23)");
 
-  Serial.println("PCA9685 initialized");
   for (int i = 0; i < 5; i++) {
     writeChannelHardware(i, savedBrightness[i]);
   }
@@ -78,7 +59,6 @@ void handleLightEffects() {
   unsigned long elapsed = now - effectStartTime;
 
   if (elapsed >= effectDuration || effectDuration == 0) {
-    // Фиксируем точное финальное значение на драйвере перед переходом в manual
     for (int i = 0; i < 5; i++) {
       savedBrightness[i] = effectChannels[i];
       writeChannelHardware(i, effectChannels[i]);
@@ -90,9 +70,9 @@ void handleLightEffects() {
 
   float progress = (float)elapsed / (float)effectDuration;
   for (int i = 0; i < 5; i++) {
-    int startBright = savedBrightness[i];
+    int startBright  = savedBrightness[i];
     int targetBright = effectChannels[i];
-    int nextBright = startBright + (int)((targetBright - startBright) * progress);
+    int nextBright   = startBright + (int)((targetBright - startBright) * progress);
     writeChannelHardware(i, nextBright);
   }
 }
@@ -100,7 +80,6 @@ void handleLightEffects() {
 void setChannelBrightness(int channel, int brightness) {
   if (!lightInitialized || channel < 0 || channel >= 5) return;
 
-  // Ручное изменение прерывает автоматический рассвет/закат
   if (currentMode == "sunrise" || currentMode == "sunset") {
     currentMode = "manual";
   }
@@ -119,15 +98,14 @@ void startSunrise(int durationMinutes) {
   if (!lightInitialized) return;
   durationMinutes = max(1, durationMinutes);
 
-  // Запоминаем текущую яркость как стартовую (плавный выход из ночи без скачка в 0)
   for (int i = 0; i < 5; i++) {
     savedBrightness[i] = currentBrightness[i];
-    effectChannels[i] = (int)(0.8f * maxBrightness[i]);
+    effectChannels[i]  = (int)(0.8f * maxBrightness[i]);
   }
 
-  currentMode = "sunrise";
+  currentMode     = "sunrise";
   effectStartTime = millis();
-  effectDuration = (unsigned long)durationMinutes * 60000UL;
+  effectDuration  = (unsigned long)durationMinutes * 60000UL;
   Serial.println("Sunrise started");
 }
 
@@ -137,12 +115,12 @@ void startSunset(int durationMinutes) {
 
   for (int i = 0; i < 5; i++) {
     savedBrightness[i] = currentBrightness[i];
-    effectChannels[i] = (int)(0.1f * maxBrightness[i]);
+    effectChannels[i]  = (int)(0.1f * maxBrightness[i]);
   }
 
-  currentMode = "sunset";
+  currentMode     = "sunset";
   effectStartTime = millis();
-  effectDuration = (unsigned long)durationMinutes * 60000UL;
+  effectDuration  = (unsigned long)durationMinutes * 60000UL;
   Serial.println("Sunset started");
 }
 
@@ -159,18 +137,18 @@ void setNightMode() {
 
 void setPWMFrequency(float freq) {
   if (!lightInitialized) return;
-  freq = constrain(freq, 24.0f, 1526.0f);
-  if (lockI2C()) {
-    pwm.setPWMFreq(freq);
-    unlockI2C();
-    Serial.println("PWM frequency set to " + String(freq) + " Hz");
+  currentPwmFreq = constrain(freq, 100.0f, 20000.0f);
+  for (int i = 0; i < 5; i++) {
+    ledcChangeFrequency(PWM_PINS[i], (uint32_t)currentPwmFreq, PWM_RESOLUTION);
+    writeChannelHardware(i, currentBrightness[i]);
   }
+  Serial.printf("LEDC PWM frequency set to %.0f Hz\n", currentPwmFreq);
 }
 
 void setChannelParams(int channel, float gamma, int maxBright) {
   if (channel < 0 || channel >= 5) return;
   gammaCoefficients[channel] = constrain(gamma, 0.5f, 5.0f);
-  maxBrightness[channel] = constrain(maxBright, 0, 255);
-  savedBrightness[channel] = constrain(savedBrightness[channel], 0, maxBrightness[channel]);
+  maxBrightness[channel]     = constrain(maxBright, 0, 255);
+  savedBrightness[channel]   = constrain(savedBrightness[channel], 0, maxBrightness[channel]);
   writeChannelHardware(channel, currentBrightness[channel]);
 }
