@@ -2,23 +2,23 @@
 #include <Arduino.h>
 #include <math.h>
 
-// 5 прямых PWM-выходов ESP32 (свободные от I2C 21/22, OneWire 4 и strapping-пинов)
-static const uint8_t PWM_PINS = {16, 17, 18, 19, 23};
+// 5 прямых PWM-выходов ESP32 (пустые [] не вырезаются при копировании)
+static const uint8_t PWM_PINS[] = {16, 17, 18, 19, 23};
 
 static const uint8_t PWM_RESOLUTION = 13;        // 13 бит = 0..8191 (плавный старт с 0%)
 static const uint32_t PWM_MAX_DUTY  = 8191;
-static float currentPwmFreq         = 5000.0f;   // 5 кГц — бесшумная работа MOSFET-драйверов
+static float currentPwmFreq         = 5000.0f;   // 5 кГц — бесшумная работа драйверов
 
-int savedBrightness   = {0, 0, 0, 0, 0};
-int currentBrightness = {0, 0, 0, 0, 0};
-float gammaCoefficients = {2.8f, 2.8f, 2.8f, 2.8f, 2.8f};
-int maxBrightness     = {255, 255, 255, 255, 255};
+int savedBrightness[]     = {0, 0, 0, 0, 0};
+int currentBrightness[]   = {0, 0, 0, 0, 0};
+float gammaCoefficients[] = {2.8f, 2.8f, 2.8f, 2.8f, 2.8f};
+int maxBrightness[]       = {255, 255, 255, 255, 255};
 
 bool lightInitialized         = false;
 String currentMode            = "manual";
 unsigned long effectStartTime = 0;
 unsigned long effectDuration  = 0;
-int effectChannels         = {0, 0, 0, 0, 0};
+int effectChannels[]          = {0, 0, 0, 0, 0};
 
 static void writeChannelHardware(int channel, int brightness) {
   if (!lightInitialized || channel < 0 || channel >= 5) return;
